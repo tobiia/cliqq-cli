@@ -1,15 +1,29 @@
 import os
 import sys
+from dotenv import load_dotenv
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 from styles import DEFAULT_STYLE
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit import choice
+from openai import (
+    OpenAI,
+    APIError,
+    AuthenticationError,
+    BadRequestError,
+    RateLimitError,
+)
 
 from prep import prep_prompt
+from ai import ai_response
+from action import run
 
 session = PromptSession()
+model_name = ""
+base_url = ""
+api_key = ""
 
 
 def user_input():
@@ -17,27 +31,41 @@ def user_input():
         ("class:user", ">> "),
     ]
     input = session.prompt(
-        message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
+        message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
     return input
+
+
+def program_choice(question, choices=[]):
+    # for simple menus
+    message = [("class:prompt", "(cliqq) "), ("class:action", question)]
+    """
+    options = [
+        ("pizza", "Pizza with mushrooms"),
+        ("pizza", "Pizza with mushrooms"),
+        ("pizza", "Pizza with mushrooms"),
+    ]
+    """
+    result = choice(
+        message=message,
+        options=choices,
+        style=DEFAULT_STYLE,
+    )
+    return result
 
 
 def program_output(text, end="\n", action=False):
     # replace all print with this!
     if action:
-        formatted_text = FormattedText(
-            [
-                ("class:name", "(cliqq)"),
-                ("class:action", text),
-            ]
-        )
+        formatted_text = [
+            ("class:name", "(cliqq)"),
+            ("class:action", text),
+        ]
     else:
-        formatted_text = FormattedText(
-            [
-                ("class:name", "(cliqq)"),
-                ("class:program", text),
-            ]
-        )
+        formatted_text = [
+            ("class:name", "(cliqq)"),
+            ("class:program", text),
+        ]
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
@@ -59,18 +87,25 @@ def main():
     program_output("How can I help you today?")
 
     # get from starter_template
+    with open("/templates/starter_template.txt") as file:
+        template = file.read()
+
     chat_history = (
         [
-            {"role": "system", "content": "You are a helpful command-line assistant"},
+            {"role": "system", "content": template},
         ],
     )
 
     input = user_input()
 
     while input != "quit" or input != "q" or input != "exit":
+        # console output is handled within functions
         user_prompt = prep_prompt(input)
-        ai_output = prompt_ai(key, base_url, model, user_prompt, chat_history)
-        response = parse_output(ai_output)
-        program_output(response)
+        chat_history, actionable = ai_response(
+            api_key, base_url, model_name, user_prompt, chat_history
+        )
+        if actionable:
+            run(actionable)
         input = user_input()
+
     exit()
