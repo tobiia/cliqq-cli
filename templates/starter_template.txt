@@ -24,7 +24,7 @@ If you are asked to do something to a file (ex. change a file, save information 
 {
     "action": "file",
     "path": [file path and name],
-    "contents": [contents of the file]
+    "content": [contents of the file]
 }
 <JSON_END>
 

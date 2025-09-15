@@ -6,20 +6,20 @@ from main import program_output, user_input, program_choice
 from action import run
 
 
-def ai_response(key, base_url, model, prompt, context):
+def ai_response(config, prompt, context):
     ai_response = ""
     data_buffer = []
     action_buffer = ""
     actionable = False
 
-    client = openai.OpenAI(api_key=key, base_url=base_url)
+    client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
 
     chat_history = context.append({"role": "user", "content": prompt})
 
     # don't really need generator?
     with client.chat.completions.create(
         # "openai/gpt-4o"
-        model=model,
+        model=config["model_name"],
         messages=context,
         stream=True,
     ) as stream:
@@ -99,14 +99,22 @@ def prompt_api_info():
         """
         run(actionable)
 
+    config = {
+        "model_name": model_name,
+        "base_url": base_url,
+        "api_key": api_key,
+    }
 
-def validate_api(api_key, base_url, model_name):
+    return config
+
+
+def validate_api(config):
     try:
-        client = openai.OpenAI(api_key=api_key, base_url=base_url)
+        client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
 
         # quick call
         resp = client.chat.completions.create(
-            model=model_name,
+            model=config["model_name"],
             messages=[{"role": "user", "content": "ping"}],
             max_tokens=1,
         )
@@ -129,14 +137,15 @@ def validate_api(api_key, base_url, model_name):
 
 
 def find_api_info():
-
+    config = None
     env_file = os.path.expanduser("~") + "/.cliqq/.env"
     load_dotenv(env_file, override=True)
     model_name = os.getenv("MODEL_NAME")
     base_url = os.getenv("BASE_URL")
     api_key = os.getenv("API_KEY")
     if model_name is None or base_url is None or api_key is None:
-        prompt_api_info()
+        config = prompt_api_info()
     else:
-        if not validate_api(api_key, base_url, model_name):
-            prompt_api_info()
+        if not validate_api(config):
+            config = prompt_api_info()
+    return config

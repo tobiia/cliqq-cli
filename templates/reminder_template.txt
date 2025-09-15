@@ -15,7 +15,7 @@ If providiing a file, like write the file like this:
 {
     "action": "file",
     "path": [file path and name],
-    "contents": [contents of the file]
+    "content": [contents of the file]
 }
 <JSON_END>
 
