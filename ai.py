@@ -6,23 +6,27 @@ from main import program_output, user_input, program_choice
 from action import run
 
 
-def ai_response(config, prompt, context):
+def ai_response(prompt, session):
     ai_response = ""
     data_buffer = []
     action_buffer = ""
     actionable = False
 
-    client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
+    client = openai.OpenAI(
+        api_key=session.config["api_key"], base_url=session.config["base_url"]
+    )
 
-    chat_history = context.append({"role": "user", "content": prompt})
+    session.chat_history = session.chat_history.append(
+        {"role": "user", "content": prompt}
+    )
 
     try:
 
         # don't really need generator?
         with client.chat.completions.create(
             # "openai/gpt-4o"
-            model=config["model_name"],
-            messages=context,
+            model=session.config["model_name"],
+            messages=session.chat_history,
             stream=True,
         ) as stream:
             for chunk in stream:
@@ -46,7 +50,7 @@ def ai_response(config, prompt, context):
                         data_buffer.append(delta)
 
                     if len(data_buffer) > 5:
-                        if data_buffer[0] is "incoming action":
+                        if data_buffer[0] == "incoming action":
                             # pop the flag
                             data_buffer.pop(0)
                             program_output(data_buffer[0], end="", style_name="action")
@@ -54,7 +58,7 @@ def ai_response(config, prompt, context):
                             program_output(data_buffer[0], end="")
                         data_buffer.pop(0)
 
-                if chunk.choices[0].finish_reason is "stop":
+                if chunk.choices[0].finish_reason == "stop":
                     break  # stop if the finish reason is 'stop
     except openai.AuthenticationError:
         program_output(
@@ -73,12 +77,12 @@ def ai_response(config, prompt, context):
 
     program_output("".join(data_buffer), end="")
 
-    chat_history.append({"role": "assistant", "content": ai_response})
+    session.chat_history.append({"role": "assistant", "content": ai_response})
 
-    return chat_history, actionable
+    return session, actionable
 
 
-def prompt_api_info():
+def prompt_api_info(session):
     instructions = """
 
     To use Cliqq, you need to configure it to work with your API of choice
@@ -106,7 +110,7 @@ def prompt_api_info():
         "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?",
         choices,
     )
-    if user_choice.lower() is "yes":
+    if user_choice.lower() == "yes":
         # TODO: needs to work on all shells...
         actionable = """
         {
@@ -114,7 +118,7 @@ def prompt_api_info():
         "command": ""
         }
         """
-        run(actionable)
+        run(actionable, session)
 
     config = {
         "model_name": model_name,
@@ -159,7 +163,7 @@ def validate_api(config):
         return False
 
 
-def find_api_info():
+def find_api_info(session):
     config = None
     env_file = os.path.expanduser("~") + "/.cliqq/.env"
     load_dotenv(env_file, override=True)
@@ -167,8 +171,8 @@ def find_api_info():
     base_url = os.getenv("BASE_URL")
     api_key = os.getenv("API_KEY")
     if model_name is None or base_url is None or api_key is None:
-        config = prompt_api_info()
+        config = prompt_api_info(session)
     else:
         if not validate_api(config):
-            config = prompt_api_info()
+            config = prompt_api_info(session)
     return config
