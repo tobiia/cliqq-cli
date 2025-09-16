@@ -12,7 +12,7 @@ from styles import DEFAULT_STYLE
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit import choice
 
-from prep import prep_prompt, parse_args
+from prep import prep_prompt, parse_commands, dispatch
 from ai import ai_response, find_api_info
 from action import run
 
@@ -31,9 +31,11 @@ intro = r"""
 
 
 def user_input():
-    message = [
-        ("class:user", ">> "),
-    ]
+    message = FormattedText(
+        [
+            ("class:user", ">> "),
+        ]
+    )
     input = prompt(
         message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
@@ -75,7 +77,6 @@ def main():
     # need function for non-interactive
     user_prompt = None
     input = ""
-    # TODO: send reminder occasionally with ai_prompt
     template_path = "/templates/reminder_template.txt"
     starter_template = "/templates/starter_template.txt"
 
@@ -88,39 +89,67 @@ def main():
 
     session.chat_history.append({"role": "system", "content": template})
 
-    # TODO: check args/commands
-    args = parse_args()  # uses sys.argv by default
+    # check for if program was invoked with a command
+    try:
+        # get from sys.argv
+        args = parse_commands()
 
-    if args.command is not None:
-        # --- Non-interactive mode (subcommand given) ---
-        result = dispatch(args, session)  # pass session into functions that need it
-        return result
+        if args.command:
 
-        # if non-interactive, goes here
-        # program logic
-        exit()
+            # if program was called in non-interactively
+            if args.command == "q":
+                dispatch(args, session)
+                exit(0)
 
-    # interactive mode below
+            program_output(intro)
+            program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+            dispatch(args, session)
 
-    program_output(intro)
+        else:
+            program_output(intro)
+            program_output(
+                "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?"
+            )
 
-    program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+    except SystemExit:
+        # argparse calls sys.exit() on errors
+        program_output(
+            "That is not a valid command. Type 'help' for options", style_name="error"
+        )
 
-    # if command, handle
-
-    # else
-
-    program_output("How can I help you today?")
-
+    # input to start interactive loop
     input = user_input()
 
+    # interactive mode below
     while input != "quit" or input != "q" or input != "exit":
+
+        try:
+            # check if user gave command
+            args = parse_commands()
+
+            if args.command:
+
+                # ignore cmd and just take the user's prompt
+                if args.command == "q":
+                    input = args.arg
+                else:
+                    dispatch(args, session)
+                    continue
+
+        except SystemExit:
+            # just in case
+            program_output(
+                "That is not a valid command. You can type 'help' for options or ask me another question",
+                style_name="error",
+            )
+            continue
 
         # console output is handled within functions
         user_prompt = prep_prompt(input, template_path)
         session, actionable = ai_response(user_prompt, session)
         if actionable:
             run(actionable, session)
+
         input = user_input()
 
     exit()

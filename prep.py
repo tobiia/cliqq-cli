@@ -4,6 +4,7 @@ import re
 import psutil
 import argparse
 
+# TODO add exit command to end program
 commands = {
     "help": {
         "description": "List Cliqq commands and what they do",
@@ -20,15 +21,15 @@ commands = {
         "function": clear,
         "args": None,
     },
-    "run": {
-        "description": "Run a command and have Cliqq analyze the output",
-        "function": run_command,
-        "args": "[command]",
-    },
     "reset": {
         "description": "Reset Cliqq conversation history",
         "function": clear_history,
         "args": None,
+    },
+    "run": {
+        "description": "Run a command and have Cliqq analyze the output",
+        "function": run_command,
+        "args": "[command]",
     },
     "q": {
         "description": "Non-interactive mode: send a single prompt and quickly get a response",
@@ -38,7 +39,7 @@ commands = {
 }
 
 
-def parse_args():
+def parse_commands(argv=None):
     parser = argparse.ArgumentParser(
         description="A simple, lightweight command line chat assistant"
     )
@@ -51,23 +52,20 @@ def parse_args():
             if "positional" in info["args"]:
                 subparser.add_argument("arg", help=info["args"])
 
-    """"
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose mode"
-    )
-    """
+    # Example global flag
+    # parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose mode")
 
-    return parser.parse_args()
+    # if argv is None it will get args from sys
+    return parser.parse_args(argv)
 
 
-def dispatch(args):
-    """Run the appropriate function based on parsed args."""
+def dispatch(args, session):
     command_info = commands[args.command]
     func = command_info["function"]
 
     if command_info.get("args") is not None:
         # Pass along the positional arg
-        return func(args.arg)
+        return func(args.arg, session)
     else:
         return func()
 

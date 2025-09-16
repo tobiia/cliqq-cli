@@ -3,7 +3,7 @@ import sys
 from dotenv import load_dotenv
 import openai
 from main import program_output, user_input, program_choice
-from action import run
+from action import save_file
 
 
 def ai_response(prompt, session):
@@ -62,15 +62,15 @@ def ai_response(prompt, session):
                     break  # stop if the finish reason is 'stop
     except openai.AuthenticationError:
         program_output(
-            "API information validation failed: Invalid API key", style_name="error"
+            "API information validation failed: invalid API key", style_name="error"
         )
     except openai.BadRequestError:
         program_output(
-            "API information validation failed: Invalid Model Name", style_name="error"
+            "API information validation failed: invalid model name", style_name="error"
         )
     except openai.NotFoundError:
         program_output(
-            "API information validation failed: Invalid Base URL", style_name="error"
+            "API information validation failed: invalid base URL", style_name="error"
         )
     except Exception as e:
         program_output(f"Unexpected error: {e}", style_name="error")
@@ -102,6 +102,13 @@ def prompt_api_info(session):
     api_key = user_input()
     base_url = user_input()
     model_name = user_input()
+
+    config = {
+        "model_name": model_name,
+        "base_url": base_url,
+        "api_key": api_key,
+    }
+
     choices = [
         ("yes", "Yes"),
         ("no", "No"),
@@ -111,22 +118,16 @@ def prompt_api_info(session):
         choices,
     )
     if user_choice.lower() == "yes":
-        # TODO: needs to work on all shells...
-        actionable = """
-        {
-        "actionable": "command",
-        "command": ""
-        }
-        """
-        run(actionable, session)
-
-    config = {
-        "model_name": model_name,
-        "base_url": base_url,
-        "api_key": api_key,
-    }
+        save_env_file(config)
 
     return config
+
+
+def save_env_file(config):
+    path = "~/.cliqq/.env"
+    content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
+    file = {"action": "file", "path": path, "content": content}
+    save_file(file)
 
 
 def validate_api(config):
@@ -145,17 +146,17 @@ def validate_api(config):
 
     except openai.AuthenticationError:
         program_output(
-            "API information validation failed: Invalid API key", style_name="error"
+            "API information validation failed: invalid API key", style_name="error"
         )
         return False
     except openai.BadRequestError:
         program_output(
-            "API information validation failed: Invalid Model Name", style_name="error"
+            "API information validation failed: invalid model name", style_name="error"
         )
         return False
     except openai.NotFoundError:
         program_output(
-            "API information validation failed: Invalid Base URL", style_name="error"
+            "API information validation failed: invalid base URL", style_name="error"
         )
         return False
     except Exception as e:
@@ -164,7 +165,7 @@ def validate_api(config):
 
 
 def find_api_info(session):
-    config = None
+    config = {"": ""}
     env_file = os.path.expanduser("~") + "/.cliqq/.env"
     load_dotenv(env_file, override=True)
     model_name = os.getenv("MODEL_NAME")

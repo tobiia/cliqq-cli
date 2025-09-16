@@ -8,15 +8,30 @@ from ai import ai_response
 
 
 def run(actionable, session):
-    data = json.loads(actionable)
-    # TODO: need error handling in case not proper json
-    if data["action"] == "command":
+    try:
+        data = json.loads(actionable)
+    except json.JSONDecodeError:
+        program_output(
+            "Something went wrong with my response and I can't parse it. I'm sorry! Please ask me again!",
+            style_name="error",
+        )
+        return
+    except Exception as e:
+        program_output(f"Unexpected error: {e}", style_name="error")
+        return
+
+    action = data.get("action")
+    if action == "command":
         run_command(data["command"], session)
-    if data["action"] == "file":
+    elif action == "file":
         save_file(data)
+    else:
+        program_output(
+            f"Failed to find action '{action}'. Please try again!", style_name="error"
+        )
 
 
-def run_command(command, session):
+def run_command(command, session, ask=True):
     """
     TODO: comments :(
     """
@@ -33,16 +48,17 @@ def run_command(command, session):
         else:
             program_output(output.stdout.strip(), style_name="action")
         # send output to ai
-        choices = [
-            ("yes", "Yes"),
-            ("no", "No"),
-        ]
-        user_choice = program_choice(
-            "Would you like for me to analyze this output?",
-            choices,
-        )
-        if user_choice == "yes":
-            ai_response(output.stdout.strip(), session)
+        if ask:
+            choices = [
+                ("yes", "Yes"),
+                ("no", "No"),
+            ]
+            user_choice = program_choice(
+                "Would you like for me to analyze this output?",
+                choices,
+            )
+            if user_choice == "yes":
+                ai_response(output.stdout.strip(), session)
 
     except FileNotFoundError:
         program_output(
@@ -50,35 +66,34 @@ def run_command(command, session):
         )
 
     except Exception as e:
-        program_output(f"Unexpected error running '{command}': {e}", style_name="error")
+        program_output(f"Unexpected error: {e}", style_name="error")
 
 
 def save_file(file):
-    path = file["path"]
+    path = os.path.expanduser(file["path"])
     content = file["content"]
     name = os.path.basename(path)
+
+    # ensure the directory exists
+    os.makedirs(os.path.dirname(path), exist_ok=True)
 
     try:
         with open(path, "x") as f:
             f.write(content)
-        return True
+
     except FileExistsError:
-        choices = [
-            ("yes", "Yes"),
-            ("no", "No"),
-        ]
+        choices = [("yes", "Yes"), ("no", "No")]
         user_choice = program_choice(
-            f"The file '{name}' already exists. Should I overwrite its contents?",
+            f"The file '{name}' already exists. Should I overwrite its content?",
             choices,
         )
 
         if user_choice == "yes":
             with open(path, "w") as f:
                 f.write(content)
-            return True
         else:
             program_output(
-                "Okay, please provide a different name for the file",
+                "Okay, please provide a different name for the file.",
                 style_name="action",
             )
             new_name = user_input()
@@ -87,13 +102,12 @@ def save_file(file):
             try:
                 with open(new_path, "x") as f:
                     f.write(content)
-                return True
             except FileExistsError:
                 program_output(
-                    "That file name already exists too. This operation will be aborted. Please request this file again!",
+                    f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
                     style_name="error",
                 )
-                return False
+
     except Exception as e:
         program_output(f"Unexpected error: {e}", style_name="error")
         return False
