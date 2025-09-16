@@ -3,15 +3,16 @@ import sys
 import re
 import psutil
 import argparse
+from commands import CliqqSession
 
 
-def parse_commands(session):
+def parse_commands(session: CliqqSession) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="A simple, lightweight command line chat assistant"
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    for command, info in session.commands.items():
+    for command, info in session._commands.items():
         subparser = subparsers.add_parser(command, help=info["description"])
 
         if info.get("args") is not None:
@@ -22,7 +23,7 @@ def parse_commands(session):
     return parser
 
 
-def prep_prompt(prompt, path):
+def prep_prompt(prompt: str, path: str) -> str:
     op_sys = sys.platform
     shell = psutil.Process(os.getppid()).name()
     cwd = os.getcwd()

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from prompt_toolkit import prompt
 from prompt_toolkit import print_formatted_text
-from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.formatted_text import FormattedText, to_plain_text
 from styles import DEFAULT_STYLE
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit import choice
@@ -32,12 +32,7 @@ intro = r"""
  """
 
 
-def log(text, session):
-    with open(session.paths["log_path"], "a") as file:
-        file.write(text)
-
-
-def create_paths():
+def create_paths() -> dict:
     home_path = os.path.expanduser("~") + "/.cliqq/"
     os.makedirs(os.path.dirname(home_path), exist_ok=True)
     paths = {}
@@ -47,7 +42,7 @@ def create_paths():
     return paths
 
 
-def user_input(session):
+def user_input(session: CliqqSession) -> str:
     message = FormattedText(
         [
             ("class:user", ">> "),
@@ -56,25 +51,25 @@ def user_input(session):
     input = prompt(
         message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
-    log(message, session)
+    session.log(to_plain_text(message))
     return input
 
 
-def program_choice(question, choices: list, session):
+def program_choice(question: str, choices: list, session: CliqqSession) -> str:
     # for simple menus
-    message = [("class:prompt", "(cliqq) "), ("class:action", question)]
-    log(message[0][1] + message[1][1], session)
+    message = FormattedText([("class:prompt", "(cliqq) "), ("class:action", question)])
+    session.log(message[0][1] + message[1][1])
     result = choice(
         message=message,
         options=choices,
         style=DEFAULT_STYLE,
     )
     result_text = ">> " + result
-    log(result_text, session)
+    session.log(result_text)
     return result
 
 
-def program_output(text, session, end="\n", style_name="program"):
+def program_output(text: str, session: CliqqSession, end="\n", style_name="program"):
     # replace all print with this!
 
     # action error program
@@ -83,14 +78,14 @@ def program_output(text, session, end="\n", style_name="program"):
         (f"class:{style_name}", text),
     ]
     # TODO concat inefficient?
-    log(formatted_text[0][1] + formatted_text[1][1], session)
+    session.log(formatted_text[0][1] + formatted_text[1][1])
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
 def main():
     # set up session
     session = CliqqSession()
-    session.paths = create_paths()
+    session.set_path(create_paths())
 
     user_prompt = None
     input = ""
@@ -98,13 +93,13 @@ def main():
     starter_template = "/templates/starter_template.txt"
 
     # get api details before anything
-    session.config = find_api_info(session)
+    session.set_config(find_api_info(session))
 
     # get starter_template
     with open(starter_template) as file:
         template = file.read()
 
-    session.chat_history.append({"role": "system", "content": template})
+    session.remember({"role": "system", "content": template})
 
     # check for if program was invoked with a command
     try:

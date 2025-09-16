@@ -11,9 +11,9 @@ from main import program_output
 class CliqqSession:
     def __init__(self):
         # "private" vars
-        self._config = {}
-        self._chat_history = []
-        self._paths = {}
+        self._config: dict[str, str] = {}
+        self._chat_history: list[dict[str, str]] = []
+        self._paths: dict[str, str] = {}
 
         self._commands = {
             "help": {
@@ -63,26 +63,30 @@ class CliqqSession:
     def config(self):
         return self._config
 
-    def get_config(self, key, default=None):
-        return self._config.get(key, default)
+    def get_config(self, key: str) -> str:
+        return self._config[key]
 
-    def set_config(self, key, value):
-        self._config[key] = value
+    def set_config(self, info):
+        self._config.update(info)
 
     # paths
     @property
     def log_path(self):
-        return self._paths.get("log_path", "cliqq.log")
+        return self._paths.get("log_path", "~/.cliqq/log.txt")
 
-    def set_path(self, name, path):
-        self._paths[name] = path
+    def env_path(self):
+        return self._paths.get("env_path", "~/.cliqq/.env")
+
+    def set_path(self, path):
+        self._paths.update(path)
 
     # chat history
     @property
-    def chat_history(self):
-        return list(self._chat_history)  # return copy if you want immutability
+    def chat_history(self) -> list[dict[str, str]]:
+        return self._chat_history  # return copy if you want immutability
 
-    def remember(self, msg):
+    def remember(self, msg: dict[str, str]):
+        # TODO make sure printing works ok with the Formatted text and stuff
         self._chat_history.append(msg)
 
     def forget(self):
@@ -91,7 +95,8 @@ class CliqqSession:
         self._paths.clear()
 
     # logging
-    def log(self, text):
+    # TODO what if file doesn't exist?
+    def log(self, text: str):
         with open(self.log_path, "a") as f:
             f.write(str(text) + "\n")
 

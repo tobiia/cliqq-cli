@@ -2,38 +2,35 @@ import os
 import sys
 from dotenv import load_dotenv
 import openai
-from main import program_output, user_input, program_choice
+from main import program_output, user_input, program_choice, CliqqSession
 from action import save_file
 
 
-def ai_response(prompt, session):
+def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str | None]:
     ai_response = ""
     data_buffer = []
     action_buffer = ""
-    actionable = False
+    actionable = None
 
     client = openai.OpenAI(
-        api_key=session.config["api_key"], base_url=session.config["base_url"]
+        api_key=session.get_config("api_key"), base_url=session.get_config("base_url")
     )
 
-    session.chat_history = session.chat_history.append(
-        {"role": "user", "content": prompt}
-    )
+    session.remember({"role": "user", "content": prompt})
 
     try:
 
         # don't really need generator?
         with client.chat.completions.create(
-            # "openai/gpt-4o"
-            model=session.config["model_name"],
-            messages=session.chat_history,
+            model=session.get_config("model_name"),
+            messages=session._chat_history,  # type: ignore
             stream=True,
-        ) as stream:
+        ) as stream:  # type: ignore
             for chunk in stream:
                 # ChatCompletionChunk(id='...', choices=[Choice(delta=ChoiceDelta(content='Two', function_call=None, role=None, tool_calls=None), finish_reason=None, ..., usage=None)
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
                     # accumulate the content, print until end of content or recieve actionable
-                    delta = chunk.choices[0].delta.content
+                    delta = str(chunk.choices[0].delta.content)
                     ai_response += delta
                     if "[JSON_START]" in delta:
                         printing_action = True
@@ -85,12 +82,12 @@ def ai_response(prompt, session):
 
     program_output("".join(data_buffer), session)
 
-    session.chat_history.append({"role": "assistant", "content": ai_response})
+    session.remember({"role": "assistant", "content": ai_response})
 
     return session, actionable
 
 
-def prompt_api_info(session):
+def prompt_api_info(session: CliqqSession) -> dict[str, str]:
     instructions = """
 
     To use Cliqq, you need to configure it to work with your API of choice
@@ -128,20 +125,20 @@ def prompt_api_info(session):
         session,
     )
     if user_choice.lower() == "yes":
-        save_env_file(config)
+        save_env_file(config, session)
 
     return config
 
 
-def save_env_file(config):
+def save_env_file(config: dict[str, str], session):
     path = "~/.cliqq/.env"
     content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
     file = {"action": "file", "path": path, "content": content}
-    save_file(file)
+    save_file(file, session)
 
 
 # TODO is this auth or validation?
-def validate_api(config, session):
+def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
     try:
         client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
 
@@ -181,8 +178,9 @@ def validate_api(config, session):
         return False
 
 
-def find_api_info(session):
+def find_api_info(session: CliqqSession) -> dict[str, str]:
     config = {"": ""}
+    # TODO what if file doesn't exist?
     env_file = os.path.expanduser("~") + "/.cliqq/.env"
     load_dotenv(env_file, override=True)
     model_name = os.getenv("MODEL_NAME")
