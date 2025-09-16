@@ -12,7 +12,8 @@ from styles import DEFAULT_STYLE
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit import choice
 
-from prep import prep_prompt, parse_commands, dispatch
+from prep import prep_prompt, parse_commands
+from commands import dispatch, CliqqSession
 from ai import ai_response, find_api_info
 from action import run
 
@@ -64,13 +65,6 @@ def program_output(text, end="\n", style_name="program"):
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
-# easier to pass around globals?
-class CliqqSession:
-    def __init__(self):
-        self.config = {}
-        self.chat_history = []
-
-
 def main():
     # set up session
     session = CliqqSession()
@@ -92,7 +86,7 @@ def main():
     # check for if program was invoked with a command
     try:
         # get from sys.argv
-        args = parse_commands()
+        args = parse_commands(session)
 
         if args.command:
 
@@ -125,7 +119,7 @@ def main():
 
         try:
             # check if user gave command
-            args = parse_commands()
+            args = parse_commands(session)
 
             if args.command:
 
