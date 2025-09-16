@@ -5,7 +5,7 @@ import psutil
 import argparse
 
 
-def parse_commands(session, argv=None):
+def parse_commands(session):
     parser = argparse.ArgumentParser(
         description="A simple, lightweight command line chat assistant"
     )
@@ -19,9 +19,7 @@ def parse_commands(session, argv=None):
                 subparser.add_argument("arg", help=info["args"])
 
     # parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose mode")
-
-    # if argv is none it will get args from sys
-    return parser.parse_args(argv)
+    return parser
 
 
 def prep_prompt(prompt, path):

@@ -1,4 +1,5 @@
 import os
+import shlex
 import sys
 import re
 import psutil
@@ -37,7 +38,6 @@ def log(text, session):
 
 
 def create_paths():
-    # TODO: in main or in class cliqq
     home_path = os.path.expanduser("~") + "/.cliqq/"
     os.makedirs(os.path.dirname(home_path), exist_ok=True)
     paths = {}
@@ -47,7 +47,7 @@ def create_paths():
     return paths
 
 
-def user_input():
+def user_input(session):
     message = FormattedText(
         [
             ("class:user", ">> "),
@@ -56,42 +56,49 @@ def user_input():
     input = prompt(
         message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
+    log(message, session)
     return input
 
 
-def program_choice(question, choices: list):
+def program_choice(question, choices: list, session):
     # for simple menus
     message = [("class:prompt", "(cliqq) "), ("class:action", question)]
+    log(message[0][1] + message[1][1], session)
     result = choice(
         message=message,
         options=choices,
         style=DEFAULT_STYLE,
     )
+    result_text = ">> " + result
+    log(result_text, session)
     return result
 
 
-def program_output(text, end="\n", style_name="program"):
+def program_output(text, session, end="\n", style_name="program"):
     # replace all print with this!
 
     # action error program
     formatted_text = [
-        ("class:name", "(cliqq)"),
+        ("class:name", "(cliqq) "),
         (f"class:{style_name}", text),
     ]
+    # TODO concat inefficient?
+    log(formatted_text[0][1] + formatted_text[1][1], session)
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
 def main():
     # set up session
     session = CliqqSession()
-    # need function for non-interactive
+    session.paths = create_paths()
+
     user_prompt = None
     input = ""
     template_path = "/templates/reminder_template.txt"
     starter_template = "/templates/starter_template.txt"
 
     # get api details before anything
-    session.config = find_api_info()
+    session.config = find_api_info(session)
 
     # get starter_template
     with open(starter_template) as file:
@@ -102,40 +109,46 @@ def main():
     # check for if program was invoked with a command
     try:
         # get from sys.argv
-        args = parse_commands(session)
+        parser = parse_commands(session)
+        args = parser.parse_args()
 
         if args.command:
 
             # if program was called in non-interactively
             if args.command == "q":
                 dispatch(args, session)
-                exit(0)
+                sys.exit()
 
-            program_output(intro)
-            program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+            program_output(intro, session)
+            program_output("Hello! I am Cliqq, the command-line AI chatbot.", session)
             dispatch(args, session)
 
         else:
-            program_output(intro)
+            program_output(intro, session)
             program_output(
-                "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?"
+                "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?",
+                session,
             )
 
     except SystemExit:
         # argparse calls sys.exit() on errors
+        program_output("Hello! I am Cliqq, the command-line AI chatbot.", session)
         program_output(
-            "That is not a valid command. Type 'help' for options", style_name="error"
+            "That is not a valid command.\nYou can start talking to cliqq by typing 'cliqq'\nYou can get an immediate response to a question by typing 'cliqq q [question]'\nType 'help' for details and more options",
+            session,
+            style_name="error",
         )
 
     # input to start interactive loop
-    input = user_input()
+    input = user_input(session)
 
     # interactive mode below
     while input != "quit" or input != "q" or input != "exit":
 
         try:
             # check if user gave command
-            args = parse_commands(session)
+            args = shlex.split(input.strip())
+            args = parser.parse_args(input)
 
             if args.command:
 
@@ -146,13 +159,9 @@ def main():
                     dispatch(args, session)
                     continue
 
-        except SystemExit:
-            # just in case
-            program_output(
-                "That is not a valid command. You can type 'help' for options or ask me another question",
-                style_name="error",
-            )
-            continue
+        except (SystemExit, ValueError):
+            # user did not enter a command so just recognize it as a normal prompt
+            pass
 
         # console output is handled within functions
         user_prompt = prep_prompt(input, template_path)
@@ -160,7 +169,7 @@ def main():
         if actionable:
             run(actionable, session)
 
-        input = user_input()
+        input = user_input(session)
 
     exit()
 

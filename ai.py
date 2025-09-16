@@ -53,36 +53,44 @@ def ai_response(prompt, session):
                         if data_buffer[0] == "incoming action":
                             # pop the flag
                             data_buffer.pop(0)
-                            program_output(data_buffer[0], end="", style_name="action")
+                            program_output(
+                                data_buffer[0], session, end="", style_name="action"
+                            )
                         else:
-                            program_output(data_buffer[0], end="")
+                            program_output(data_buffer[0], session, end="")
                         data_buffer.pop(0)
 
                 if chunk.choices[0].finish_reason == "stop":
                     break  # stop if the finish reason is 'stop
     except openai.AuthenticationError:
         program_output(
-            "API information validation failed: invalid API key", style_name="error"
+            "API information validation failed: invalid API key",
+            session,
+            style_name="error",
         )
     except openai.BadRequestError:
         program_output(
-            "API information validation failed: invalid model name", style_name="error"
+            "API information validation failed: invalid model name",
+            session,
+            style_name="error",
         )
     except openai.NotFoundError:
         program_output(
-            "API information validation failed: invalid base URL", style_name="error"
+            "API information validation failed: invalid base URL",
+            session,
+            style_name="error",
         )
     except Exception as e:
-        program_output(f"Unexpected error: {e}", style_name="error")
+        program_output(f"Unexpected error: {e}", session, style_name="error")
 
-    program_output("".join(data_buffer), end="")
+    program_output("".join(data_buffer), session)
 
     session.chat_history.append({"role": "assistant", "content": ai_response})
 
     return session, actionable
 
 
-def prompt_api_info():
+def prompt_api_info(session):
     instructions = """
 
     To use Cliqq, you need to configure it to work with your API of choice
@@ -94,14 +102,15 @@ def prompt_api_info():
     Further information can be found in the README.md or using the command: cliqq help
     """
 
-    program_output("Your API information could not be found automatically.")
-    program_output(instructions)
+    program_output("Your API information could not be found automatically.", session)
+    program_output(instructions, session)
     program_output(
-        "I will now prompt you to provide the name of the model you want to use, the API key, and the base url."
+        "I will now prompt you to provide the name of the model you want to use, the API key, and the base url.",
+        session,
     )
-    api_key = user_input()
-    base_url = user_input()
-    model_name = user_input()
+    api_key = user_input(session)
+    base_url = user_input(session)
+    model_name = user_input(session)
 
     config = {
         "model_name": model_name,
@@ -116,6 +125,7 @@ def prompt_api_info():
     user_choice = program_choice(
         "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?",
         choices,
+        session,
     )
     if user_choice.lower() == "yes":
         save_env_file(config)
@@ -131,7 +141,7 @@ def save_env_file(config):
 
 
 # TODO is this auth or validation?
-def validate_api(config):
+def validate_api(config, session):
     try:
         client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
 
@@ -147,25 +157,31 @@ def validate_api(config):
 
     except openai.AuthenticationError:
         program_output(
-            "API information validation failed: invalid API key", style_name="error"
+            "API information validation failed: invalid API key",
+            session,
+            style_name="error",
         )
         return False
     except openai.BadRequestError:
         program_output(
-            "API information validation failed: invalid model name", style_name="error"
+            "API information validation failed: invalid model name",
+            session,
+            style_name="error",
         )
         return False
     except openai.NotFoundError:
         program_output(
-            "API information validation failed: invalid base URL", style_name="error"
+            "API information validation failed: invalid base URL",
+            session,
+            style_name="error",
         )
         return False
     except Exception as e:
-        program_output(f"Unexpected error: {e}", style_name="error")
+        program_output(f"Unexpected error: {e}", session, style_name="error")
         return False
 
 
-def find_api_info():
+def find_api_info(session):
     config = {"": ""}
     env_file = os.path.expanduser("~") + "/.cliqq/.env"
     load_dotenv(env_file, override=True)
@@ -173,8 +189,8 @@ def find_api_info():
     base_url = os.getenv("BASE_URL")
     api_key = os.getenv("API_KEY")
     if model_name is None or base_url is None or api_key is None:
-        config = prompt_api_info()
+        config = prompt_api_info(session)
     else:
-        if not validate_api(config):
-            config = prompt_api_info()
+        if not validate_api(config, session):
+            config = prompt_api_info(session)
     return config
