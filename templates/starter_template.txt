@@ -9,7 +9,7 @@ INSTRUCTIONS:
 
 {} = JSON
 
-If you are asked to provide a shell command, please provide the command in the following format:
+If you are asked to provide a shell command, please provide the command in the following format. Please make sure to state if the command may cause issues or make permanent changes:
 
 <JSON_START>
 {

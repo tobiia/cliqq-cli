@@ -10,6 +10,7 @@ DEFAULT_STYLE = Style.from_dict(
         "name": "#00aa00",
         "program": "#00aa00",
         "action": "#e914a5",
+        "error": "#cf1515",
         "input-selection": "fg:#ff0000",
         "number": "fg:#884444 bold",
         "selected-option": "underline",

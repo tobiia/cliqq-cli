@@ -62,7 +62,7 @@ def user_input():
     return input
 
 
-def program_choice(question, choices=[]):
+def program_choice(question, choices: list):
     # for simple menus
     message = [("class:prompt", "(cliqq) "), ("class:action", question)]
     """
@@ -80,18 +80,14 @@ def program_choice(question, choices=[]):
     return result
 
 
-def program_output(text, end="\n", action=False):
+def program_output(text, end="\n", style_name="program"):
     # replace all print with this!
-    if action:
-        formatted_text = [
-            ("class:name", "(cliqq)"),
-            ("class:action", text),
-        ]
-    else:
-        formatted_text = [
-            ("class:name", "(cliqq)"),
-            ("class:program", text),
-        ]
+
+    # action error program
+    formatted_text = [
+        ("class:name", "(cliqq)"),
+        (f"class:{style_name}", text),
+    ]
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 

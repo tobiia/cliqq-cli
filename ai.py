@@ -16,44 +16,60 @@ def ai_response(config, prompt, context):
 
     chat_history = context.append({"role": "user", "content": prompt})
 
-    # don't really need generator?
-    with client.chat.completions.create(
-        # "openai/gpt-4o"
-        model=config["model_name"],
-        messages=context,
-        stream=True,
-    ) as stream:
-        for chunk in stream:
-            # ChatCompletionChunk(id='...', choices=[Choice(delta=ChoiceDelta(content='Two', function_call=None, role=None, tool_calls=None), finish_reason=None, ..., usage=None)
-            if chunk.choices[0].delta and chunk.choices[0].delta.content:
-                # accumulate the content, print until end of content or recieve actionable
-                delta = chunk.choices[0].delta.content
-                ai_response += delta
-                if "[JSON_START]" in delta:
-                    printing_action = True
-                if printing_action:
-                    action_buffer += delta
-                    if "[JSON_END]" in delta:
-                        printing_action = False
-                        pre_str, rest = action_buffer.split("[JSON_START]")
-                        actionable, post_str = rest.split("[JSON_END]")
-                        data_buffer.extend(
-                            [pre_str, "incoming action", actionable, post_str]
-                        )
-                else:
-                    data_buffer.append(delta)
+    try:
 
-                if len(data_buffer) > 5:
-                    if data_buffer[0] is "incoming action":
-                        # pop the flag
-                        data_buffer.pop(0)
-                        program_output(data_buffer[0], end="", action=True)
+        # don't really need generator?
+        with client.chat.completions.create(
+            # "openai/gpt-4o"
+            model=config["model_name"],
+            messages=context,
+            stream=True,
+        ) as stream:
+            for chunk in stream:
+                # ChatCompletionChunk(id='...', choices=[Choice(delta=ChoiceDelta(content='Two', function_call=None, role=None, tool_calls=None), finish_reason=None, ..., usage=None)
+                if chunk.choices[0].delta and chunk.choices[0].delta.content:
+                    # accumulate the content, print until end of content or recieve actionable
+                    delta = chunk.choices[0].delta.content
+                    ai_response += delta
+                    if "[JSON_START]" in delta:
+                        printing_action = True
+                    if printing_action:
+                        action_buffer += delta
+                        if "[JSON_END]" in delta:
+                            printing_action = False
+                            pre_str, rest = action_buffer.split("[JSON_START]")
+                            actionable, post_str = rest.split("[JSON_END]")
+                            data_buffer.extend(
+                                [pre_str, "incoming action", actionable, post_str]
+                            )
                     else:
-                        program_output(data_buffer[0], end="")
-                    data_buffer.pop(0)
+                        data_buffer.append(delta)
 
-            if chunk.choices[0].finish_reason == "stop":
-                break  # stop if the finish reason is 'stop'
+                    if len(data_buffer) > 5:
+                        if data_buffer[0] is "incoming action":
+                            # pop the flag
+                            data_buffer.pop(0)
+                            program_output(data_buffer[0], end="", style_name="action")
+                        else:
+                            program_output(data_buffer[0], end="")
+                        data_buffer.pop(0)
+
+                if chunk.choices[0].finish_reason is "stop":
+                    break  # stop if the finish reason is 'stop
+    except openai.AuthenticationError:
+        program_output(
+            "API information validation failed: Invalid API key", style_name="error"
+        )
+    except openai.BadRequestError:
+        program_output(
+            "API information validation failed: Invalid Model Name", style_name="error"
+        )
+    except openai.NotFoundError:
+        program_output(
+            "API information validation failed: Invalid Base URL", style_name="error"
+        )
+    except Exception as e:
+        program_output(f"Unexpected error: {e}", style_name="error")
 
     program_output("".join(data_buffer), end="")
 
@@ -83,11 +99,12 @@ def prompt_api_info():
     base_url = user_input()
     model_name = user_input()
     choices = [
-        ("Yes", "Yes"),
-        ("No", "No"),
+        ("yes", "Yes"),
+        ("no", "No"),
     ]
     user_choice = program_choice(
-        "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?"
+        "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?",
+        choices,
     )
     if user_choice.lower() is "yes":
         # TODO: needs to work on all shells...
@@ -123,16 +140,22 @@ def validate_api(config):
         return True
 
     except openai.AuthenticationError:
-        program_output("API information validation failed: Invalid API key")
+        program_output(
+            "API information validation failed: Invalid API key", style_name="error"
+        )
         return False
     except openai.BadRequestError:
-        program_output("API information validation: Invalid Model Name")
+        program_output(
+            "API information validation failed: Invalid Model Name", style_name="error"
+        )
         return False
     except openai.NotFoundError:
-        program_output("API information validation: Invalid Base URL")
+        program_output(
+            "API information validation failed: Invalid Base URL", style_name="error"
+        )
         return False
     except Exception as e:
-        program_output(f"Unexpected error: {e}")
+        program_output(f"Unexpected error: {e}", style_name="error")
         return False
 
 
