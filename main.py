@@ -31,6 +31,22 @@ intro = r"""
  """
 
 
+def log(text, session):
+    with open(session.paths["log_path"], "a") as file:
+        file.write(text)
+
+
+def create_paths():
+    # TODO: in main or in class cliqq
+    home_path = os.path.expanduser("~") + "/.cliqq/"
+    os.makedirs(os.path.dirname(home_path), exist_ok=True)
+    paths = {}
+    paths["home_path"] = home_path
+    paths["log_path"] = home_path + "log.txt"
+    paths["script_path"] = os.path.dirname(__file__)
+    return paths
+
+
 def user_input():
     message = FormattedText(
         [
@@ -75,7 +91,7 @@ def main():
     starter_template = "/templates/starter_template.txt"
 
     # get api details before anything
-    session.config = find_api_info(session)
+    session.config = find_api_info()
 
     # get starter_template
     with open(starter_template) as file:

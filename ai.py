@@ -82,7 +82,7 @@ def ai_response(prompt, session):
     return session, actionable
 
 
-def prompt_api_info(session):
+def prompt_api_info():
     instructions = """
 
     To use Cliqq, you need to configure it to work with your API of choice
@@ -130,6 +130,7 @@ def save_env_file(config):
     save_file(file)
 
 
+# TODO is this auth or validation?
 def validate_api(config):
     try:
         client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
@@ -164,7 +165,7 @@ def validate_api(config):
         return False
 
 
-def find_api_info(session):
+def find_api_info():
     config = {"": ""}
     env_file = os.path.expanduser("~") + "/.cliqq/.env"
     load_dotenv(env_file, override=True)
@@ -172,8 +173,8 @@ def find_api_info(session):
     base_url = os.getenv("BASE_URL")
     api_key = os.getenv("API_KEY")
     if model_name is None or base_url is None or api_key is None:
-        config = prompt_api_info(session)
+        config = prompt_api_info()
     else:
         if not validate_api(config):
-            config = prompt_api_info(session)
+            config = prompt_api_info()
     return config
