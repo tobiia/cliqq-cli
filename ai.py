@@ -206,7 +206,7 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
 def find_api_info(session: CliqqSession) -> dict[str, str]:
     config = {}
 
-    env_file = os.path.expanduser(session.env_path)
+    env_file = session.env_path
 
     # check values in .env if it exists
     if os.path.exists(env_file):

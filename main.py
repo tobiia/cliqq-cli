@@ -19,17 +19,22 @@ from commands import dispatch, CliqqSession
 from ai import ai_response, find_api_info
 from action import run
 
-BASE_DIR = os.path.dirname(__file__)  # directory containing this file
-
 
 def create_paths(session: CliqqSession):
-    home_path = os.path.expanduser("~") + "/.cliqq/"
+    # FIXME use os.path.join + / w paths!
+    home_path = os.path.join(os.path.expanduser("~"), ".cliqq")
+    # TODO don't need to do this every time b/c this fuc is always called
     os.makedirs(os.path.dirname(home_path), exist_ok=True)
 
     session.set_path("home_path", home_path)
-    session.set_path("log_path", home_path + "log.txt")
+
+    log_path = os.path.join(home_path, "log.txt")
+    session.set_path("log_path", log_path)
+
+    env_path = os.path.join(home_path, ".env")
+    session.set_path("env_path", env_path)
+
     session.set_path("script_path", os.path.dirname(__file__))
-    session.set_path("env_path", home_path + ".env")
 
 
 # NOTE: for when this is a pip-installable package
@@ -42,8 +47,8 @@ def create_paths(session: CliqqSession):
 
 
 # NOTE: for while i'm testing
-def load_template_local(name: str) -> str:
-    path = os.path.join(BASE_DIR, "templates", name)
+def load_template_local(name: str, session: CliqqSession) -> str:
+    path = os.path.join(session.script_path, "templates", name)
     with open(path, encoding="utf-8") as f:
         return f.read()
 
@@ -115,7 +120,7 @@ def main():
     session.set_config(find_api_info(session))
 
     # or "reminder_template.txt"
-    template = load_template_local("starter_template.txt")
+    template = load_template_local("starter_template.txt", session)
 
     session.remember({"role": "system", "content": template})
 

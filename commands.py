@@ -73,6 +73,7 @@ class CliqqSession:
     def config(self):
         return self._config
 
+    # TODO not pythonic, need to re-read properties and implement
     def get_config(self, key: str) -> str:
         return self._config[key]
 
@@ -111,17 +112,19 @@ class CliqqSession:
             self.flush_log()
 
     def flush_log(self):
+        # TODO make atomic in case program crash mid-write
+        log_dir = os.path.dirname(self.log_path)
+        os.makedirs(log_dir, exist_ok=True)
+
         if not self._log_buffer:
             return
 
         try:
-            log_dir = os.path.dirname(self.log_path)
-            # FIXME makedirs doesn't create files, must be matched w log_dir and then create file
-            os.makedirs(log_dir, exist_ok=True)
             log_text = "".join(self._log_buffer)
             with open(self.log_path, "a") as f:
                 f.write(log_text)
         except Exception as e:
+            # TODO deal with this in a non-distruptive way
             pass
 
         self._log_buffer.clear()
@@ -144,21 +147,24 @@ def clear(session: CliqqSession):
 def show_log(session: CliqqSession):
     try:
         session.flush_log()
-        with open(session.log_path, "r") as file:
-            log = file.read()
+        with open(session.log_path) as f:
+            log = f.read()
             # TODO a better way to display log, especially if it's large
-            program_output(log, session)
+            program_output(log, session, style_name="action")
+            program_output(
+                "--------- end of log ---------", session, style_name="action"
+            )
     except FileNotFoundError:
-        program_output(
-            "I couldn't find the log file, I'm sorry!", session, style_name="error"
-        )
+        program_output("The log is empty!", session, style_name="error")
+        # create log if it doesn't exist, probably redundant but check
+        f = open(session.log_path, "a")
+        f.close()
     except IOError as e:
         program_output(f"Error reading log file: {e}", session, style_name="error")
 
 
 def clear_log(session: CliqqSession):
     try:
-        # Create directory if it doesn't exist
         log_dir = os.path.dirname(session.log_path)
         os.makedirs(log_dir, exist_ok=True)
 
