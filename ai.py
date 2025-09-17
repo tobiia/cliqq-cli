@@ -2,6 +2,7 @@ import os
 import sys
 from dotenv import dotenv_values
 import openai
+
 from main import program_output, user_input, program_choice, CliqqSession
 from action import save_file
 
@@ -137,14 +138,6 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
 
     return config
 
-
-def save_env_file(config: dict[str, str], session: CliqqSession):
-    path = session.env_path
-    content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
-    file = {"action": "file", "path": path, "content": content}
-    save_file(file, session, overwrite=True)
-
-
 def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
     try:
         client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
@@ -156,7 +149,20 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
             max_tokens=1,
         )
 
-        # if we get here, all are valid
+        # if we get here, info was validated/correct
+
+        choices = [
+        ("yes", "Yes"),
+        ("no", "No"),
+        ]
+        user_choice = program_choice(
+            "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?",
+            choices,
+            session,
+        )
+        if user_choice.lower() == "yes":
+            save_env_file(config, session)
+
         return True
 
     except openai.AuthenticationError:
@@ -184,6 +190,11 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
         program_output(f"Unexpected error: {e}", session, style_name="error")
         return False
 
+def save_env_file(config: dict[str, str], session: CliqqSession):
+    path = session.env_path
+    content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
+    file = {"action": "file", "path": path, "content": content}
+    save_file(file, session, overwrite=True)
 
 def find_api_info(session: CliqqSession) -> dict[str, str]:
     config = {}
