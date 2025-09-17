@@ -74,7 +74,7 @@ def run_command(command: str, session: CliqqSession, ask=True):
         program_output(f"Unexpected error: {e}", session, style_name="error")
 
 
-def save_file(file: dict[str, str], session):
+def save_file(file: dict[str, str], session: CliqqSession, overwrite=False):
     # file is in json format
     path = os.path.expanduser(file["path"])
     content = file["content"]
@@ -88,34 +88,39 @@ def save_file(file: dict[str, str], session):
             f.write(content)
 
     except FileExistsError:
-        choices = [("yes", "Yes"), ("no", "No")]
-        user_choice = program_choice(
-            f"The file '{name}' already exists. Should I overwrite its content?",
-            choices,
-            session,
-        )
-
-        if user_choice == "yes":
+        if overwrite:
             with open(path, "w") as f:
                 f.write(content)
         else:
-            program_output(
-                "Okay, please provide a different name for the file.",
+            choices = [("yes", "Yes"), ("no", "No")]
+            user_choice = program_choice(
+                f"The file '{name}' already exists. Should I overwrite its content?",
+                choices,
                 session,
-                style_name="action",
             )
-            new_name = user_input(session)
-            new_path = os.path.join(os.path.dirname(path), new_name)
 
-            try:
-                with open(new_path, "x") as f:
+            if user_choice == "yes":
+                with open(path, "w") as f:
                     f.write(content)
-            except FileExistsError:
+            else:
+                # TODO return the file path just in case it changes
                 program_output(
-                    f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
+                    "Okay, please provide a different name for the file.",
                     session,
-                    style_name="error",
+                    style_name="action",
                 )
+                new_name = user_input(session)
+                new_path = os.path.join(os.path.dirname(path), new_name)
+
+                try:
+                    with open(new_path, "x") as f:
+                        f.write(content)
+                except FileExistsError:
+                    program_output(
+                        f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
+                        session,
+                        style_name="error",
+                    )
 
     except Exception as e:
         program_output(f"Unexpected error: {e}", session, style_name="error")

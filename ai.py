@@ -1,6 +1,6 @@
 import os
 import sys
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 import openai
 from main import program_output, user_input, program_choice, CliqqSession
 from action import save_file
@@ -88,26 +88,47 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
 
 
 def prompt_api_info(session: CliqqSession) -> dict[str, str]:
+    # TODO create default w openai
     instructions = """
-
     To use Cliqq, you need to configure it to work with your API of choice
     If you want to avoid having to provide your API information every time you use Cliqq, you can either:
         - Create a file ~/.cliqq/.env with variables MODEL_NAME, BASE_URL, and API_KEY
         - Set environment variables named MODEL_NAME, BASE_URL, and API_KEY
-        - Pass them as arguments and start Cliqq using this command: cliqq api [model_name] [base_url], and [api_key]
-    
-    Further information can be found in the README.md or using the command: cliqq help
+    Further information can be found in the README.md
+
+    If you believe that this is a mistake, please check the values of your environment variables in your ~/.cliqq/.env (if it exists) and/or your system environment variables. Cliqq will always prioritize the values in the .env file if it exists.
     """
 
-    program_output("Your API information could not be found automatically.", session)
+    program_output(
+        "Your API information could not be found automatically.",
+        session,
+        style_name="action",
+    )
     program_output(instructions, session)
     program_output(
         "I will now prompt you to provide the name of the model you want to use, the API key, and the base url.",
         session,
+        style_name="action",
+    )
+    program_output(
+        "Please enter the MODEL NAME for this language model:",
+        session,
+        style_name="action",
+    )
+    # FIXME add arg to prevent logging sensitive info!
+    model_name = user_input(session)
+    program_output(
+        "Please enter the BASE URL for this language model:",
+        session,
+        style_name="action",
+    )
+    base_url = user_input(session)
+    program_output(
+        "Please enter your API KEY for this language model:",
+        session,
+        style_name="action",
     )
     api_key = user_input(session)
-    base_url = user_input(session)
-    model_name = user_input(session)
 
     config = {
         "model_name": model_name,
@@ -126,15 +147,20 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
     )
     if user_choice.lower() == "yes":
         save_env_file(config, session)
+    else:
+        program_output(
+            "",
+            session,
+        )
 
     return config
 
 
-def save_env_file(config: dict[str, str], session):
-    path = "~/.cliqq/.env"
+def save_env_file(config: dict[str, str], session: CliqqSession):
+    path = session.env_path
     content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
     file = {"action": "file", "path": path, "content": content}
-    save_file(file, session)
+    save_file(file, session, overwrite=True)
 
 
 def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
@@ -178,16 +204,35 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
 
 
 def find_api_info(session: CliqqSession) -> dict[str, str]:
-    config = {"": ""}
-    # TODO what if file doesn't exist?
-    env_file = os.path.expanduser("~") + "/.cliqq/.env"
-    load_dotenv(env_file, override=True)
+    config = {}
+
+    env_file = os.path.expanduser(session.env_path)
+
+    # check values in .env if it exists
+    if os.path.exists(env_file):
+        env_dict = dotenv_values(env_file)
+        model_name = env_dict.get("MODEL_NAME")
+        base_url = env_dict.get("BASE_URL")
+        api_key = env_dict.get("API_KEY")
+
+        if model_name and base_url and api_key:
+            config = {
+                "MODEL_NAME": model_name,
+                "BASE_URL": base_url,
+                "API_KEY": api_key,
+            }
+            if validate_api(config, session):
+                return config
+
+    # if .env check fails, check sys env vars
     model_name = os.getenv("MODEL_NAME")
     base_url = os.getenv("BASE_URL")
     api_key = os.getenv("API_KEY")
-    if model_name is None or base_url is None or api_key is None:
-        config = prompt_api_info(session)
-    else:
-        if not validate_api(config, session):
-            config = prompt_api_info(session)
-    return config
+
+    if model_name and base_url and api_key:
+        config = {"MODEL_NAME": model_name, "BASE_URL": base_url, "API_KEY": api_key}
+        if validate_api(config, session):
+            return config
+
+    # if neither, prompt the user for api info
+    return prompt_api_info(session)
