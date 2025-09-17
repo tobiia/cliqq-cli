@@ -5,6 +5,7 @@ import openai
 
 from main import program_output, user_input, program_choice, CliqqSession
 from action import save_file
+from commands import exit_cliqq
 
 
 def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str | None]:
@@ -138,6 +139,7 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
 
     return config
 
+
 def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
     try:
         client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
@@ -152,8 +154,8 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
         # if we get here, info was validated/correct
 
         choices = [
-        ("yes", "Yes"),
-        ("no", "No"),
+            ("yes", "Yes"),
+            ("no", "No"),
         ]
         user_choice = program_choice(
             "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?",
@@ -190,11 +192,13 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
         program_output(f"Unexpected error: {e}", session, style_name="error")
         return False
 
+
 def save_env_file(config: dict[str, str], session: CliqqSession):
     path = session.env_path
     content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
     file = {"action": "file", "path": path, "content": content}
     save_file(file, session, overwrite=True)
+
 
 def find_api_info(session: CliqqSession) -> dict[str, str]:
     config = {}
@@ -236,4 +240,9 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
     if validate_api(config, session):
         return config
     else:
-        # FIXME user has failed to provide info so ask them to verify their info then shut down
+        program_output(
+            "I'm sorry! I could not get valid API values. Please verify that the API values you have are correct, or check the README.md for guidance, and try again later",
+            session,
+            style_name="error",
+        )
+        exit_cliqq(session)

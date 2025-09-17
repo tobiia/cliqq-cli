@@ -116,6 +116,7 @@ def main():
     template = ""
 
     # get api details before anything
+    # TODO: probably change so you can do some commands w/o correct api info
     session.set_config(find_api_info(session))
 
     # or "reminder_template.txt"
