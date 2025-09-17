@@ -237,9 +237,10 @@ def quick_response(user_prompt: str, session: CliqqSession):
 def dispatch(args, session: CliqqSession):
     command_info = session.commands[args.command]
     func = command_info["function"]
-
     if command_info.get("args") is not None:
-        # Pass along the positional arg
+        # functions that take positional args
+        # currently all commands only take one, alter if future commands need more
         return func(args.arg, session)
     else:
-        return func()
+        # TODO many of these functions don't take session as arg
+        return func(session)

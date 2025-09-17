@@ -16,13 +16,13 @@ from prompt_toolkit import choice
 
 from prep import prep_prompt, parse_commands
 from commands import dispatch, CliqqSession, exit_cliqq
-from ai import ai_response, find_api_info
+from ai import ai_response
 from action import run
 
 
 def create_paths(session: CliqqSession):
     home_path = os.path.join(os.path.expanduser("~"), ".cliqq")
-    # TODO don't need to do this every time b/c this fuc is always called
+    # NOTE don't need to do this in every func b/c this func is always called
     os.makedirs(os.path.dirname(home_path), exist_ok=True)
 
     session.set_path("home_path", home_path)
@@ -123,27 +123,21 @@ def main():
     input = ""
     template = ""
 
-    # get api details before anything
-    # TODO: probably change so you can do some commands w/o correct api info
-    try:
-        session.set_config(find_api_info(session))
-    except ValueError:
-        program_output(
-            "Sorry! I could not get valid API values. Please verify that the API values you have are correct, or check the README.md for guidance, and try again later",
-            session,
-            style_name="error",
-        )
-        exit_cliqq(session)
-
     # or "reminder_template.txt"
     template = load_template_local("starter_template.txt", session)
 
     session.remember({"role": "system", "content": template})
 
+    # better to defer API validation until first op that requires it
+    # so the user can run simple commands w/o setting up API info
+
     # check for if program was invoked with a command
+    # build the parser once and reuse it in the interactive loop
+    parser = parse_commands(session)
+    # store parser on session so help cmd can access it
+    session._parser = parser
     try:
         # get from sys.argv
-        parser = parse_commands(session)
         args = parser.parse_args()
 
         if args.command:
@@ -182,7 +176,7 @@ def main():
         try:
             # check if user gave command
             args = shlex.split(input.strip())
-            args = parser.parse_args(input)
+            args = parser.parse_args(args)
 
             if args.command:
 
@@ -200,6 +194,7 @@ def main():
         # console output is handled within functions
         user_prompt = prep_prompt(input, template)
         session, actionable = ai_response(user_prompt, session)
+        # FIXME need to handle if ai_response returns None b/c of api credential error
         if actionable:
             run(actionable, session)
 

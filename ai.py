@@ -13,6 +13,18 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
     action_buffer = ""
     actionable = None
 
+    # ensure api info is valid every time an api call is made
+    try:
+        ensure_api(session)
+    # only called if program couldn't get valid api info
+    except ValueError as e:
+        program_output(
+            f"I'm sorry, I cannot process your request! {e} Please verify your API credentials and update your {session.env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
+            session,
+            style_name="error",
+        )
+        return session, None
+
     client = openai.OpenAI(api_key=session.api_key, base_url=session.base_url)
 
     session.remember({"role": "user", "content": prompt})
@@ -212,9 +224,9 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
 
         if model_name and base_url and api_key:
             config = {
-                "MODEL_NAME": model_name,
-                "BASE_URL": base_url,
-                "API_KEY": api_key,
+                "model_name": model_name,
+                "base_url": base_url,
+                "api_key": api_key,
             }
             if validate_api(config, session):
                 return config
@@ -225,11 +237,7 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
     api_key = os.getenv("API_KEY")
 
     if model_name and base_url and api_key:
-        config = {
-            "MODEL_NAME": model_name,
-            "BASE_URL": base_url,
-            "API_KEY": api_key,
-        }
+        config = {"model_name": model_name, "base_url": base_url, "api_key": api_key}
         if validate_api(config, session):
             return config
 
@@ -239,5 +247,20 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
         return config
     else:
         raise ValueError(
-            "Could not find valid API credentials (checked .env, system environment variables, and user input)"
+            "Invalid API credentials (checked .env, system environment variables, and user input)"
         )
+
+
+def ensure_api(session: CliqqSession) -> None:
+    # ensures api info is set
+    if session.model_name and session.base_url and session.api_key:
+        # don't validate again b/c if these have been set, the user must've made a valid call before
+        return
+
+    program_output(
+        "Your API credentials are not configured. Let's set those up now!",
+        session,
+        style_name="error",
+    )
+    config = find_api_info(session)
+    session.set_config(config)
