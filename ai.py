@@ -5,7 +5,6 @@ import openai
 
 from main import program_output, user_input, program_choice, CliqqSession
 from action import save_file
-from commands import exit_cliqq
 
 
 def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str | None]:
@@ -240,9 +239,6 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
     if validate_api(config, session):
         return config
     else:
-        program_output(
-            "I'm sorry! I could not get valid API values. Please verify that the API values you have are correct, or check the README.md for guidance, and try again later",
-            session,
-            style_name="error",
+        raise ValueError(
+            "Could not find valid API credentials (checked .env, system environment variables, and user input)"
         )
-        exit_cliqq(session)

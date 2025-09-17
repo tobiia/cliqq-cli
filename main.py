@@ -15,7 +15,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit import choice
 
 from prep import prep_prompt, parse_commands
-from commands import dispatch, CliqqSession
+from commands import dispatch, CliqqSession, exit_cliqq
 from ai import ai_response, find_api_info
 from action import run
 
@@ -117,7 +117,15 @@ def main():
 
     # get api details before anything
     # TODO: probably change so you can do some commands w/o correct api info
-    session.set_config(find_api_info(session))
+    try:
+        session.set_config(find_api_info(session))
+    except ValueError:
+        program_output(
+            "Sorry! I could not get valid API values. Please verify that the API values you have are correct, or check the README.md for guidance, and try again later",
+            session,
+            style_name="error",
+        )
+        exit_cliqq(session)
 
     # or "reminder_template.txt"
     template = load_template_local("starter_template.txt", session)
