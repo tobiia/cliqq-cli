@@ -22,7 +22,7 @@ class CommandSpec(TypedDict):
 class CliqqSession:
     def __init__(self):
         # "private" vars
-        self._config: dict[str, str] = {}
+        self._config: dict[str, str] = {"model_name": "", "base_url": "", "api_key": ""}
         self._chat_history: list[dict[str, str]] = []
         self._paths: dict[str, str] = {}
         self._parser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -71,7 +71,7 @@ class CliqqSession:
                 "args": "[prompt]",
             },
             # TODO cliqq api [model_name] [base_url], and [api_key]
-                # maybe call find_api_info with these as optional args
+            # maybe call find_api_info with these as optional args
         }
 
     # config
@@ -82,7 +82,6 @@ class CliqqSession:
     # no setter, commands are hardcoded
 
     # config
-    # FIXME have decided to make api info individual properties for ease in future updates
     # func marked @property is the getter
     @property
     def model_name(self) -> str:
@@ -115,6 +114,10 @@ class CliqqSession:
 
     # paths
     @property
+    def home_path(self):
+        return self._paths.get("home_path", "~/.cliqq")
+
+    @property
     def log_path(self):
         return self._paths.get("log_path", "~/.cliqq/log.txt")
 
@@ -122,8 +125,16 @@ class CliqqSession:
     def env_path(self):
         return self._paths.get("env_path", "~/.cliqq/.env")
 
+    @property
+    def script_path(self):
+        # maybe putting a func here isn't the best idea?
+        return self._paths.get("script_path", os.path.dirname(__file__))
+
     def set_path(self, path_name: str, path: str):
         self._paths[path_name] = path
+
+    def get_path(self, path_name: str):
+        self._paths.get(path_name, self.home_path)
 
     # chat history
     @property

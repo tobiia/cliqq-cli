@@ -21,7 +21,6 @@ from action import run
 
 
 def create_paths(session: CliqqSession):
-    # FIXME use os.path.join + / w paths!
     home_path = os.path.join(os.path.expanduser("~"), ".cliqq")
     # TODO don't need to do this every time b/c this fuc is always called
     os.makedirs(os.path.dirname(home_path), exist_ok=True)
