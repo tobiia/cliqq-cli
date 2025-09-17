@@ -75,6 +75,7 @@ def run_command(command: str, session: CliqqSession, ask=True):
 
 
 def save_file(file: dict[str, str], session):
+    # file is in json format
     path = os.path.expanduser(file["path"])
     content = file["content"]
     name = os.path.basename(path)

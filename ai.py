@@ -137,7 +137,6 @@ def save_env_file(config: dict[str, str], session):
     save_file(file, session)
 
 
-# TODO is this auth or validation?
 def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
     try:
         client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])

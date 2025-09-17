@@ -5,6 +5,7 @@ import re
 import psutil
 import argparse
 from dotenv import load_dotenv
+from importlib import resources
 
 from prompt_toolkit import prompt
 from prompt_toolkit import print_formatted_text
@@ -18,28 +19,35 @@ from commands import dispatch, CliqqSession
 from ai import ai_response, find_api_info
 from action import run
 
-intro = r""" 
-
-··························
-:       _ _              :
-:   ___| (_) __ _  __ _  :
-:  / __| | |/ _` |/ _` | :
-: | (__| | | (_| | (_| | :
-:  \___|_|_|\__, |\__, | :
-:              |_|   |_| :
-··························
-
- """
+BASE_DIR = os.path.dirname(__file__)  # directory containing this file
 
 
-def create_paths() -> dict:
+def create_paths() -> dict[str, str]:
     home_path = os.path.expanduser("~") + "/.cliqq/"
     os.makedirs(os.path.dirname(home_path), exist_ok=True)
     paths = {}
+
     paths["home_path"] = home_path
     paths["log_path"] = home_path + "log.txt"
     paths["script_path"] = os.path.dirname(__file__)
+
     return paths
+
+
+# TODO: for when this is a pip-installable package
+""" def load_template_pack(name: str) -> str:
+    # templates is a subpackage of mypackage
+    with resources.files("mypackage.templates").joinpath(name).open(
+        "r", encoding="utf-8"
+    ) as f:
+        return f.read() """
+
+
+# TODO: for while i'm testing
+def load_template_local(name: str) -> str:
+    path = os.path.join(BASE_DIR, "templates", name)
+    with open(path, encoding="utf-8") as f:
+        return f.read()
 
 
 def user_input(session: CliqqSession) -> str:
@@ -77,27 +85,38 @@ def program_output(text: str, session: CliqqSession, end="\n", style_name="progr
         ("class:name", "(cliqq) "),
         (f"class:{style_name}", text),
     ]
-    # TODO concat inefficient?
     session.log(formatted_text[0][1] + formatted_text[1][1])
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
 def main():
+
+    intro = r""" 
+
+    ··························
+    :       _ _              :
+    :   ___| (_) __ _  __ _  :
+    :  / __| | |/ _` |/ _` | :
+    : | (__| | | (_| | (_| | :
+    :  \___|_|_|\__, |\__, | :
+    :              |_|   |_| :
+    ··························
+
+    """
+
     # set up session
     session = CliqqSession()
     session.set_path(create_paths())
 
     user_prompt = None
     input = ""
-    template_path = "/templates/reminder_template.txt"
-    starter_template = "/templates/starter_template.txt"
+    template = ""
 
     # get api details before anything
     session.set_config(find_api_info(session))
 
-    # get starter_template
-    with open(starter_template) as file:
-        template = file.read()
+    # or "reminder_template.txt"
+    template = load_template_local("starter_template.txt")
 
     session.remember({"role": "system", "content": template})
 
@@ -159,7 +178,7 @@ def main():
             pass
 
         # console output is handled within functions
-        user_prompt = prep_prompt(input, template_path)
+        user_prompt = prep_prompt(input, template)
         session, actionable = ai_response(user_prompt, session)
         if actionable:
             run(actionable, session)

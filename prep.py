@@ -23,14 +23,12 @@ def parse_commands(session: CliqqSession) -> argparse.ArgumentParser:
     return parser
 
 
-def prep_prompt(prompt: str, path: str) -> str:
+def prep_prompt(prompt: str, template: str) -> str:
     op_sys = sys.platform
     shell = psutil.Process(os.getppid()).name()
     cwd = os.getcwd()
 
-    with open(path) as file:
-        prompt_template = file.read()
-    prompt_template = re.sub(r"{OS}", op_sys, prompt_template)
+    prompt_template = re.sub(r"{OS}", op_sys, template)
     prompt_template = re.sub(r"{SHELL}", shell, prompt_template)
     prompt_template = re.sub(r"{CWD}", cwd, prompt_template)
     prompt_template = re.sub(r"{QUESTION}", prompt, prompt_template)
