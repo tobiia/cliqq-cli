@@ -101,6 +101,7 @@ def program_output(
 
 
 def main():
+    # REVIEW time for testing...
 
     intro = r""" 
 
@@ -194,7 +195,6 @@ def main():
         # console output is handled within functions
         user_prompt = prep_prompt(input, template)
         session, actionable = ai_response(user_prompt, session)
-        # FIXME need to handle if ai_response returns None b/c of api credential error
         if actionable:
             run(actionable, session)
 
