@@ -52,7 +52,7 @@ def load_template_local(name: str, session: CliqqSession) -> str:
         return f.read()
 
 
-def user_input(session: CliqqSession) -> str:
+def user_input(session: CliqqSession, sensitive=False) -> str:
     message = FormattedText(
         [
             ("class:user", ">> "),
@@ -61,33 +61,41 @@ def user_input(session: CliqqSession) -> str:
     input = prompt(
         message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
-    session.log(f"{to_plain_text(message)}{input}\n")
+    if not sensitive:
+        session.log(f"{to_plain_text(message)}{input}\n")
     return input
 
 
-def program_choice(question: str, choices: list, session: CliqqSession) -> str:
+def program_choice(
+    question: str, choices: list, session: CliqqSession, sensitive=False
+) -> str:
     # for simple menus
     message = FormattedText([("class:prompt", "(cliqq) "), ("class:action", question)])
-    session.log(f"{to_plain_text(message[0][1])}{question}\n")
     result = choice(
         message=message,
         options=choices,
         style=DEFAULT_STYLE,
     )
-    session.log(f">> {result}\n")
+    if not sensitive:
+        session.log(f"{to_plain_text(message[0][1])}{question}\n")
+        session.log(f">> {result}\n")
     return result
 
 
-def program_output(text: str, session: CliqqSession, end="\n", style_name="program"):
+def program_output(
+    text: str, session: CliqqSession, end="\n", style_name="program", sensitive=False
+):
     # action error program
     formatted_text = [
         ("class:name", "(cliqq) "),
         (f"class:{style_name}", text),
     ]
-    if end:
-        session.log(f"{formatted_text[0][1]}{text}{end}")
-    else:
-        session.log(formatted_text[0][1] + text)
+
+    if not sensitive:
+        if end:
+            session.log(f"{formatted_text[0][1]}{text}{end}")
+        else:
+            session.log(formatted_text[0][1] + text)
 
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 

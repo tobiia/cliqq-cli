@@ -115,20 +115,19 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
         session,
         style_name="action",
     )
-    # FIXME add arg to prevent logging sensitive info!
-    model_name = user_input(session)
+    model_name = user_input(session, sensitive=True)
     program_output(
         "Please enter the BASE URL for this language model:",
         session,
         style_name="action",
     )
-    base_url = user_input(session)
+    base_url = user_input(session, sensitive=True)
     program_output(
         "Please enter your API KEY for this language model:",
         session,
         style_name="action",
     )
-    api_key = user_input(session)
+    api_key = user_input(session, sensitive=True)
 
     config = {
         "model_name": model_name,
