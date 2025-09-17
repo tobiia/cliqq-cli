@@ -1,10 +1,20 @@
 import os
 import sys
 import argparse
+from typing import Callable, Optional, TypedDict
 
 from ai import ai_response
 from action import run_command
 from main import program_output
+
+
+# for typing...probably not necessary
+class CommandSpec(TypedDict):
+    description: str
+    # Callable[[types of the args...], return type]
+    # below = any callable, any args, returning anything --> most general
+    function: Callable[..., object]
+    args: Optional[str]  # means None or whatever is written
 
 
 # adding properties and get/setters for readability
@@ -19,7 +29,7 @@ class CliqqSession:
         self._log_buffer: list[str] = []
         self._log_buffer_size = 10
 
-        self._commands: dict[str, dict] = {
+        self._commands: dict[str, CommandSpec] = {
             "help": {
                 "description": "List Cliqq commands and what they do",
                 "function": help,
@@ -61,25 +71,47 @@ class CliqqSession:
                 "args": "[prompt]",
             },
             # TODO cliqq api [model_name] [base_url], and [api_key]
+                # maybe call find_api_info with these as optional args
         }
 
     # config
     @property
-    def commands(self) -> dict[str, dict]:
+    def commands(self) -> dict[str, CommandSpec]:
         return self._commands
 
+    # no setter, commands are hardcoded
+
     # config
+    # FIXME have decided to make api info individual properties for ease in future updates
+    # func marked @property is the getter
     @property
-    def config(self):
-        return self._config
+    def model_name(self) -> str:
+        return self._config.get("model_name", "")
 
-    # TODO not pythonic, need to re-read properties and implement
-    def get_config(self, key: str) -> str:
-        return self._config[key]
+    # this is how you mark setters, notice prop name after @
+    @model_name.setter
+    def model_name(self, value: str):
+        self._config["model_name"] = value
 
-    # FIXME should be individual
-    def set_config(self, info):
-        self._config.update(info)
+    @property
+    def base_url(self) -> str:
+        return self._config.get("base_url", "")
+
+    @base_url.setter
+    def base_url(self, value: str):
+        self._config["base_url"] = value
+
+    @property
+    def api_key(self) -> str:
+        return self._config.get("api_key", "")
+
+    @api_key.setter
+    def api_key(self, value: str):
+        self._config["api_key"] = value
+
+    # for updating everything at once for ease
+    def set_config(self, config: dict[str, str]):
+        self._config = config
 
     # paths
     @property

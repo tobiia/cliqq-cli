@@ -12,12 +12,11 @@ def parse_commands(session: CliqqSession) -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    for command, info in session._commands.items():
+    for command, info in session.commands.items():
         subparser = subparsers.add_parser(command, help=info["description"])
 
         if info.get("args") is not None:
-            if "positional" in info["args"]:
-                subparser.add_argument("arg", help=info["args"])
+            subparser.add_argument("arg", help=info["args"])
 
     # parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose mode")
     return parser

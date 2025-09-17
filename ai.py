@@ -12,9 +12,7 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
     action_buffer = ""
     actionable = None
 
-    client = openai.OpenAI(
-        api_key=session.get_config("api_key"), base_url=session.get_config("base_url")
-    )
+    client = openai.OpenAI(api_key=session.api_key, base_url=session.base_url)
 
     session.remember({"role": "user", "content": prompt})
 
@@ -22,7 +20,7 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
 
         # don't really need generator?
         with client.chat.completions.create(
-            model=session.get_config("model_name"),
+            model=session.model_name,
             messages=session._chat_history,  # type: ignore
             stream=True,
         ) as stream:  # type: ignore
@@ -89,6 +87,7 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
 
 def prompt_api_info(session: CliqqSession) -> dict[str, str]:
     # TODO create default w openai
+    # TODO only change 1 field
     instructions = """
     To use Cliqq, you need to configure it to work with your API of choice
     If you want to avoid having to provide your API information every time you use Cliqq, you can either:
@@ -102,7 +101,7 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
     program_output(
         "Your API information could not be found automatically.",
         session,
-        style_name="action",
+        style_name="error",
     )
     program_output(instructions, session)
     program_output(
@@ -135,23 +134,6 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
         "base_url": base_url,
         "api_key": api_key,
     }
-
-    choices = [
-        ("yes", "Yes"),
-        ("no", "No"),
-    ]
-    user_choice = program_choice(
-        "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?",
-        choices,
-        session,
-    )
-    if user_choice.lower() == "yes":
-        save_env_file(config, session)
-    else:
-        program_output(
-            "",
-            session,
-        )
 
     return config
 
@@ -230,9 +212,17 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
     api_key = os.getenv("API_KEY")
 
     if model_name and base_url and api_key:
-        config = {"MODEL_NAME": model_name, "BASE_URL": base_url, "API_KEY": api_key}
+        config = {
+            "MODEL_NAME": model_name,
+            "BASE_URL": base_url,
+            "API_KEY": api_key,
+        }
         if validate_api(config, session):
             return config
 
     # if neither, prompt the user for api info
-    return prompt_api_info(session)
+    config = prompt_api_info(session)
+    if validate_api(config, session):
+        return config
+    else:
+        # FIXME user has failed to provide info so ask them to verify their info then shut down
