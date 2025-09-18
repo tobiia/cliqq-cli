@@ -172,7 +172,7 @@ def main():
     input = user_input(session)
 
     # interactive mode below
-    while input != "quit" or input != "q" or input != "exit":
+    while input != "exit":
 
         try:
             # check if user gave command
@@ -200,7 +200,7 @@ def main():
 
         input = user_input(session)
 
-    exit()
+    exit_cliqq(session)
 
 
 if __name__ == "__main__":

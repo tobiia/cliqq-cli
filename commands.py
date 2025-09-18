@@ -19,6 +19,7 @@ class CommandSpec(TypedDict):
 
 # adding properties and get/setters for readability
 # less dict accesses
+# should i make this a static class?
 class CliqqSession:
     def __init__(self):
         # "private" vars
@@ -30,6 +31,7 @@ class CliqqSession:
         self._log_buffer_size = 10
 
         self._commands: dict[str, CommandSpec] = {
+            # also -h or --help b/c of argparse by default
             "help": {
                 "description": "List Cliqq commands and what they do",
                 "function": help,
@@ -242,5 +244,5 @@ def dispatch(args, session: CliqqSession):
         # currently all commands only take one, alter if future commands need more
         return func(args.arg, session)
     else:
-        # TODO many of these functions don't take session as arg
+        # TODO many of these functions don't really need to take session
         return func(session)
