@@ -1,11 +1,6 @@
 import os
 import shlex
 import sys
-import re
-import psutil
-import argparse
-from dotenv import load_dotenv
-from importlib import resources
 
 from prompt_toolkit import prompt
 from prompt_toolkit import print_formatted_text
