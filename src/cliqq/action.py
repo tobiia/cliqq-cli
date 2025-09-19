@@ -7,7 +7,7 @@ from main import user_input, program_output, program_choice, CliqqSession
 from ai import ai_response
 
 
-def run(actionable: str, session: CliqqSession):
+def run(actionable: str, session: CliqqSession) -> None:
     try:
         data = json.loads(actionable)
     except json.JSONDecodeError:
@@ -34,7 +34,7 @@ def run(actionable: str, session: CliqqSession):
         )
 
 
-def run_command(command: str, session: CliqqSession, ask=True):
+def run_command(command: str, session: CliqqSession, ask: bool = True) -> None:
     """
     TODO: comments :(
     """
@@ -74,7 +74,9 @@ def run_command(command: str, session: CliqqSession, ask=True):
         program_output(f"Unexpected error: {e}", session, style_name="error")
 
 
-def save_file(file: dict[str, str], session: CliqqSession, overwrite=False):
+def save_file(
+    file: dict[str, str], session: CliqqSession, overwrite: bool = False
+) -> None:
     # file is in json format
     path = os.path.expanduser(file["path"])
     content = file["content"]

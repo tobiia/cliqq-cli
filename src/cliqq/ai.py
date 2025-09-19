@@ -203,7 +203,7 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
         return False
 
 
-def save_env_file(config: dict[str, str], session: CliqqSession):
+def save_env_file(config: dict[str, str], session: CliqqSession) -> None:
     path = session.env_path
     content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
     file = {"action": "file", "path": path, "content": content}

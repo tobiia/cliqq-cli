@@ -47,7 +47,7 @@ def load_template_local(name: str, session: CliqqSession) -> str:
         return f.read()
 
 
-def user_input(session: CliqqSession, sensitive=False) -> str:
+def user_input(session: CliqqSession, sensitive: bool = False) -> str:
     message = FormattedText(
         [
             ("class:user", ">> "),
@@ -62,7 +62,7 @@ def user_input(session: CliqqSession, sensitive=False) -> str:
 
 
 def program_choice(
-    question: str, choices: list, session: CliqqSession, sensitive=False
+    question: str, choices: list, session: CliqqSession, sensitive: bool = False
 ) -> str:
     # for simple menus
     message = FormattedText([("class:prompt", "(cliqq) "), ("class:action", question)])
@@ -78,7 +78,11 @@ def program_choice(
 
 
 def program_output(
-    text: str, session: CliqqSession, end="\n", style_name="program", sensitive=False
+    text: str,
+    session: CliqqSession,
+    end: str = "\n",
+    style_name: str = "program",
+    sensitive: bool = False,
 ):
     # action error program
     formatted_text = [
@@ -95,7 +99,7 @@ def program_output(
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
-def main():
+def main() -> None:
     # REVIEW time for testing...
 
     intro = r""" 

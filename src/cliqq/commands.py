@@ -1,7 +1,7 @@
 import os
 import sys
 import argparse
-from typing import Callable, Optional, TypedDict
+from typing import Callable, NoReturn, Optional, TypedDict
 
 from ai import ai_response
 from action import run_command
@@ -19,7 +19,7 @@ class CommandSpec(TypedDict):
 
 # adding properties and get/setters for readability
 # less dict accesses
-# should i make this a static class?
+# should maybe use dependency injection or contextvars...
 class CliqqSession:
     def __init__(self):
         # "private" vars
@@ -175,21 +175,21 @@ class CliqqSession:
         self._log_buffer.clear()
 
 
-def help(session: CliqqSession):
+def help(session: CliqqSession) -> None:
     session._parser.print_help()
 
 
-def exit_cliqq(session: CliqqSession):
+def exit_cliqq(session: CliqqSession) -> NoReturn:
     session.flush_log()
     program_output("Bye! Let's talk again soon!", session)
     sys.exit(0)
 
 
-def clear(session: CliqqSession):
+def clear(session: CliqqSession) -> None:
     os.system("clear||cls")
 
 
-def show_log(session: CliqqSession):
+def show_log(session: CliqqSession) -> None:
     try:
         session.flush_log()
         with open(session.log_path) as f:
@@ -208,7 +208,8 @@ def show_log(session: CliqqSession):
         program_output(f"Error reading log file: {e}", session, style_name="error")
 
 
-def clear_log(session: CliqqSession):
+# TODO go through return None funcs to see if they should return something...
+def clear_log(session: CliqqSession) -> None:
     try:
         log_dir = os.path.dirname(session.log_path)
         os.makedirs(log_dir, exist_ok=True)
@@ -222,7 +223,7 @@ def clear_log(session: CliqqSession):
         program_output(f"Error clearing log file: {e}", session, style_name="error")
 
 
-def clear_context(session: CliqqSession):
+def clear_context(session: CliqqSession) -> None:
     session.forget()
     program_output(
         "Chat history cleared. I don't remember anything? I don't remember anything!",
@@ -232,7 +233,7 @@ def clear_context(session: CliqqSession):
     program_output("How can I help you?", session)
 
 
-def quick_response(user_prompt: str, session: CliqqSession):
+def quick_response(user_prompt: str, session: CliqqSession) -> None:
     ai_response(user_prompt, session)
 
 
