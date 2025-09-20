@@ -3,7 +3,32 @@ import sys
 import re
 import psutil
 import argparse
+import logging
 from commands import CliqqSession
+
+
+class BufferingFileHandler(logging.Handler):
+    def __init__(self, filename: str, buffer_size: int = 10):
+        super().__init__()
+        self._filename = filename
+        self._buffer_size = buffer_size
+        self._buffer: list[str] = []
+
+    # log info is passed around in LogRecord instances
+    def emit(self, record: logging.LogRecord):
+        msg = self.format(record)
+        self._buffer.append(msg)
+        if len(self._buffer) >= self._buffer_size:
+            self.flush()
+
+    def flush(self):
+        if not self._buffer:
+            return
+        os.makedirs(os.path.dirname(self._filename), exist_ok=True)
+        log_text = "".join(self._buffer)
+        with open(self._filename, "a") as f:
+            f.write(log_text)
+        self._buffer.clear()
 
 
 # usage

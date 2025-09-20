@@ -19,7 +19,7 @@ class CommandSpec(TypedDict):
 
 # adding properties and get/setters for readability
 # less dict accesses
-# should maybe use dependency injection or contextvars...
+# should maybe use dependency injection (FastAPI) or contextvars (Flask)...
 class CliqqSession:
     def __init__(self):
         # "private" vars
@@ -181,7 +181,7 @@ def help(session: CliqqSession) -> None:
 
 def exit_cliqq(session: CliqqSession) -> NoReturn:
     session.flush_log()
-    program_output("Bye! Let's talk again soon!", session)
+    program_output("Bye! Let's talk again soon!")
     sys.exit(0)
 
 
@@ -195,17 +195,15 @@ def show_log(session: CliqqSession) -> None:
         with open(session.log_path) as f:
             log = f.read()
             # TODO a better way to display log, especially if it's large
-            program_output(log, session, style_name="action")
-            program_output(
-                "--------- end of log ---------", session, style_name="action"
-            )
+            program_output(log, style_name="action")
+            program_output("--------- end of log ---------", style_name="action")
     except FileNotFoundError:
-        program_output("The log is empty!", session, style_name="error")
+        program_output("The log is empty!", style_name="error")
         # create log if it doesn't exist, probably redundant but check
         f = open(session.log_path, "a")
         f.close()
     except IOError as e:
-        program_output(f"Error reading log file: {e}", session, style_name="error")
+        program_output(f"Error reading log file: {e}", style_name="error")
 
 
 # TODO go through return None funcs to see if they should return something...
@@ -216,21 +214,18 @@ def clear_log(session: CliqqSession) -> None:
 
         with open(session.log_path, "w") as f:
             f.write("")
-        program_output(
-            "Chat log cleared, let's start fresh!", session, style_name="action"
-        )
+        program_output("Chat log cleared, let's start fresh!", style_name="action")
     except IOError as e:
-        program_output(f"Error clearing log file: {e}", session, style_name="error")
+        program_output(f"Error clearing log file: {e}", style_name="error")
 
 
 def clear_context(session: CliqqSession) -> None:
     session.forget()
     program_output(
         "Chat history cleared. I don't remember anything? I don't remember anything!",
-        session,
         style_name="action",
     )
-    program_output("How can I help you?", session)
+    program_output("How can I help you?")
 
 
 def quick_response(user_prompt: str, session: CliqqSession) -> None:

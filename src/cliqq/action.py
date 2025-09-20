@@ -13,12 +13,11 @@ def run(actionable: str, session: CliqqSession) -> None:
     except json.JSONDecodeError:
         program_output(
             "Something went wrong with my response and I can't parse it. I'm sorry! Please ask me again!",
-            session,
             style_name="error",
         )
         return
     except Exception as e:
-        program_output(f"Unexpected error: {e}", session, style_name="error")
+        program_output(f"Unexpected error: {e}", style_name="error")
         return
 
     action = data.get("action")
@@ -29,7 +28,6 @@ def run(actionable: str, session: CliqqSession) -> None:
     else:
         program_output(
             f"Failed to find action '{action}'. Please try again!",
-            session,
             style_name="error",
         )
 
@@ -46,11 +44,10 @@ def run_command(command: str, session: CliqqSession, ask: bool = True) -> None:
         if output.returncode != 0:
             program_output(
                 f"Command {command} failed with exit code {output.returncode}:\n{output.stderr.strip()}\nPlease try again!",
-                session,
                 style_name="error",
             )
         else:
-            program_output(output.stdout.strip(), session, style_name="action")
+            program_output(output.stdout.strip(), style_name="action")
         # send output to ai
         if ask:
             choices = [
@@ -58,7 +55,8 @@ def run_command(command: str, session: CliqqSession, ask: bool = True) -> None:
                 ("no", "No"),
             ]
             user_choice = program_choice(
-                "Would you like for me to analyze this output?", choices, session
+                "Would you like for me to analyze this output?",
+                choices,
             )
             if user_choice == "yes":
                 ai_response(output.stdout.strip(), session)
@@ -66,12 +64,11 @@ def run_command(command: str, session: CliqqSession, ask: bool = True) -> None:
     except FileNotFoundError:
         program_output(
             f"Failed to find command {command}\nPlease try again!",
-            session,
             style_name="error",
         )
 
     except Exception as e:
-        program_output(f"Unexpected error: {e}", session, style_name="error")
+        program_output(f"Unexpected error: {e}", style_name="error")
 
 
 def save_file(
@@ -98,7 +95,6 @@ def save_file(
             user_choice = program_choice(
                 f"The file '{name}' already exists. Should I overwrite its content?",
                 choices,
-                session,
             )
 
             if user_choice == "yes":
@@ -108,10 +104,9 @@ def save_file(
                 # TODO return the file path just in case it changes
                 program_output(
                     "Okay, please provide a different name for the file.",
-                    session,
                     style_name="action",
                 )
-                new_name = user_input(session)
+                new_name = user_input()
                 new_path = os.path.join(os.path.dirname(path), new_name)
 
                 try:
@@ -120,9 +115,8 @@ def save_file(
                 except FileExistsError:
                     program_output(
                         f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
-                        session,
                         style_name="error",
                     )
 
     except Exception as e:
-        program_output(f"Unexpected error: {e}", session, style_name="error")
+        program_output(f"Unexpected error: {e}", style_name="error")

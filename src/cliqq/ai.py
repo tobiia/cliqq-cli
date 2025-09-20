@@ -20,7 +20,6 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
     except ValueError as e:
         program_output(
             f"I'm sorry, I cannot process your request! {e} Please verify your API credentials and update your {session.env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
-            session,
             style_name="error",
         )
         return session, None
@@ -61,11 +60,9 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
                         if data_buffer[0] == "incoming action":
                             # pop the flag
                             data_buffer.pop(0)
-                            program_output(
-                                data_buffer[0], session, end="", style_name="action"
-                            )
+                            program_output(data_buffer[0], end="", style_name="action")
                         else:
-                            program_output(data_buffer[0], session, end="")
+                            program_output(data_buffer[0], end="")
                         data_buffer.pop(0)
 
                 if chunk.choices[0].finish_reason == "stop":
@@ -73,25 +70,22 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
     except openai.AuthenticationError:
         program_output(
             "API information validation failed: invalid API key",
-            session,
             style_name="error",
         )
     except openai.BadRequestError:
         program_output(
             "API information validation failed: invalid model name",
-            session,
             style_name="error",
         )
     except openai.NotFoundError:
         program_output(
             "API information validation failed: invalid base URL",
-            session,
             style_name="error",
         )
     except Exception as e:
-        program_output(f"Unexpected error: {e}", session, style_name="error")
+        program_output(f"Unexpected error: {e}", style_name="error")
 
-    program_output("".join(data_buffer), session)
+    program_output("".join(data_buffer))
 
     session.remember({"role": "assistant", "content": ai_response})
 
@@ -113,33 +107,28 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
 
     program_output(
         "Your API information could not be found automatically.",
-        session,
         style_name="error",
     )
-    program_output(instructions, session)
+    program_output(instructions)
     program_output(
         "I will now prompt you to provide the name of the model you want to use, the API key, and the base url.",
-        session,
         style_name="action",
     )
     program_output(
         "Please enter the MODEL NAME for this language model:",
-        session,
         style_name="action",
     )
-    model_name = user_input(session, sensitive=True)
+    model_name = user_input(sensitive=True)
     program_output(
         "Please enter the BASE URL for this language model:",
-        session,
         style_name="action",
     )
-    base_url = user_input(session, sensitive=True)
+    base_url = user_input(sensitive=True)
     program_output(
         "Please enter your API KEY for this language model:",
-        session,
         style_name="action",
     )
-    api_key = user_input(session, sensitive=True)
+    api_key = user_input(sensitive=True)
 
     config = {
         "model_name": model_name,
@@ -170,7 +159,6 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
         user_choice = program_choice(
             "Would you like for me to create a .env file with your API information so you do not need to provide it the next time you load Cliqq?",
             choices,
-            session,
         )
         if user_choice.lower() == "yes":
             save_env_file(config, session)
@@ -180,26 +168,23 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
     except openai.AuthenticationError:
         program_output(
             "API information validation failed: invalid API key",
-            session,
             style_name="error",
         )
         return False
     except openai.BadRequestError:
         program_output(
             "API information validation failed: invalid model name",
-            session,
             style_name="error",
         )
         return False
     except openai.NotFoundError:
         program_output(
             "API information validation failed: invalid base URL",
-            session,
             style_name="error",
         )
         return False
     except Exception as e:
-        program_output(f"Unexpected error: {e}", session, style_name="error")
+        program_output(f"Unexpected error: {e}", style_name="error")
         return False
 
 
@@ -259,7 +244,6 @@ def ensure_api(session: CliqqSession) -> None:
 
     program_output(
         "Your API credentials are not configured. Let's set those up now!",
-        session,
         style_name="error",
     )
     config = find_api_info(session)

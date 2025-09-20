@@ -1,6 +1,7 @@
 import os
 import shlex
 import sys
+import logging
 
 from prompt_toolkit import prompt
 from prompt_toolkit import print_formatted_text
@@ -9,12 +10,34 @@ from styles import DEFAULT_STYLE
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit import choice
 
-from prep import prep_prompt, parse_commands
+from prep import prep_prompt, parse_commands, BufferingFileHandler
 from commands import dispatch, CliqqSession, exit_cliqq
 from ai import ai_response
 from action import run
 
 
+def setup_logging() -> logging.Logger:
+    logger = logging.getLogger("cliqq")
+    # root logger setup
+    logging.basicConfig(encoding="utf-8", level=logging.DEBUG)  # catch all
+
+    debug_handler = BufferingFileHandler("debug.log", 3)
+    debug_handler.setFormatter(
+        logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    )
+    debug_handler.setLevel(logging.ERROR)
+
+    io_handler = BufferingFileHandler("cliqq.log")
+    io_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s"))
+
+    # Attach handlers
+    logger.addHandler(debug_handler)
+    logger.addHandler(io_handler)
+
+    return logger
+
+
+# should use pathlib Paths instead of str
 def create_paths(session: CliqqSession):
     home_path = os.path.join(os.path.expanduser("~"), ".cliqq")
     # NOTE don't need to do this in every func b/c this func is always called
@@ -47,7 +70,7 @@ def load_template_local(name: str, session: CliqqSession) -> str:
         return f.read()
 
 
-def user_input(session: CliqqSession, sensitive: bool = False) -> str:
+def user_input(sensitive: bool = False) -> str:
     message = FormattedText(
         [
             ("class:user", ">> "),
@@ -57,13 +80,12 @@ def user_input(session: CliqqSession, sensitive: bool = False) -> str:
         message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
     if not sensitive:
-        session.log(f"{to_plain_text(message)}{input}\n")
+        logger = logging.getLogger("cliqq")
+        logger.info(f"{to_plain_text(message)}{input}\n")
     return input
 
 
-def program_choice(
-    question: str, choices: list, session: CliqqSession, sensitive: bool = False
-) -> str:
+def program_choice(question: str, choices: list, sensitive: bool = False) -> str:
     # for simple menus
     message = FormattedText([("class:prompt", "(cliqq) "), ("class:action", question)])
     result = choice(
@@ -72,14 +94,14 @@ def program_choice(
         style=DEFAULT_STYLE,
     )
     if not sensitive:
-        session.log(f"{to_plain_text(message[0][1])}{question}\n")
-        session.log(f">> {result}\n")
+        logger = logging.getLogger("cliqq")
+        logger.info(f"{to_plain_text(message[0][1])}{question}\n")
+        logger.info(f">> {result}\n")
     return result
 
 
 def program_output(
     text: str,
-    session: CliqqSession,
     end: str = "\n",
     style_name: str = "program",
     sensitive: bool = False,
@@ -90,11 +112,12 @@ def program_output(
         (f"class:{style_name}", text),
     ]
 
+    logger = logging.getLogger("cliqq")
     if not sensitive:
         if end:
-            session.log(f"{formatted_text[0][1]}{text}{end}")
+            logger.info(f"{formatted_text[0][1]}{text}{end}")
         else:
-            session.log(formatted_text[0][1] + text)
+            logger.info(formatted_text[0][1] + text)
 
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
@@ -147,28 +170,26 @@ def main() -> None:
                 dispatch(args, session)
                 sys.exit()
 
-            program_output(intro, session)
-            program_output("Hello! I am Cliqq, the command-line AI chatbot.", session)
+            program_output(intro)
+            program_output("Hello! I am Cliqq, the command-line AI chatbot.")
             dispatch(args, session)
 
         else:
-            program_output(intro, session)
+            program_output(intro)
             program_output(
                 "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?",
-                session,
             )
 
     except SystemExit:
         # argparse calls sys.exit() on errors
-        program_output("Hello! I am Cliqq, the command-line AI chatbot.", session)
+        program_output("Hello! I am Cliqq, the command-line AI chatbot.")
         program_output(
             "That is not a valid command.\nYou can start talking to cliqq by typing 'cliqq'\nYou can get an immediate response to a question by typing 'cliqq q [question]'\nType 'help' for details and more options",
-            session,
             style_name="error",
         )
 
     # input to start interactive loop
-    input = user_input(session)
+    input = user_input()
 
     # interactive mode below
     while input != "exit":
@@ -197,7 +218,7 @@ def main() -> None:
         if actionable:
             run(actionable, session)
 
-        input = user_input(session)
+        input = user_input()
 
     exit_cliqq(session)
 
