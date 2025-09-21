@@ -1,6 +1,4 @@
-import os
 import shlex
-import sys
 import logging
 from pathlib import Path
 
@@ -117,9 +115,6 @@ def main() -> None:
 
     history.remember({"role": "system", "content": template})
 
-    # better to defer API validation until first op that requires it
-    # so the user can run simple commands w/o setting up API info
-
     # check for if program was invoked with a command
     # build the parser once and reuse it in the interactive loop
     parser = parse_commands(command_registry)
@@ -169,11 +164,32 @@ def main() -> None:
         except (SystemExit, ValueError):
             input = args.arg
 
-        # console output is handled within functions
+        # most console output is handled within functions
+
         user_prompt = prep_prompt(input, template)
-        actionable = ai_response(user_prompt, api_config, history, paths)
-        if actionable:
-            run(actionable, api_config, history, paths)
+
+        response_content = ai_response(user_prompt, api_config, history, paths)
+
+        if response_content:
+            if response_content["actionable"]:
+                actionable = response_content.get("content")
+                if run(actionable, api_config, history, paths):
+                    program_output(
+                        "And your request has been completed! Do you have another question?"
+                    )
+                else:
+                    program_output(
+                        "I'm sorry I couldn't complete your request. Do you have another one for me?"
+                    )
+            else:
+                # maybe have a bank of different wording for this?
+                program_output(
+                    "Okay, what is your next question or request? I'm all ears!"
+                )
+        else:
+            program_output(
+                "I'm sorry I couldn't get an answer for you. Would you like to ask me another question?"
+            )
 
         input = user_input()
 

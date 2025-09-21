@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 import subprocess
 import shlex
@@ -12,31 +11,32 @@ from log import logger
 
 def run(
     actionable: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
-) -> None:
+) -> bool:
     try:
         data = json.loads(actionable)
     except json.JSONDecodeError as e:
         logger.exception("Exception: %s", e)
         program_output(
-            "Something went wrong with my response and I can't parse it. I'm sorry! Please ask me again!",
+            "Something went wrong with my response and I can't parse it. Please ask me again!",
             style_name="error",
         )
-        return
+        return False
     except Exception as e:
         logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
-        return
+        return False
 
     action = data.get("action")
     if action == "command":
-        run_command(data["command"], api_config, history, paths)
+        return run_command(data["command"], api_config, history, paths)
     elif action == "file":
-        save_file(data)
+        return save_file(data)
     else:
         program_output(
             f"Failed to find action '{action}'. Please try again!",
             style_name="error",
         )
+        return False
 
 
 def run_command(
@@ -45,7 +45,7 @@ def run_command(
     history: ChatHistory,
     paths: PathManager,
     ask: bool = True,
-) -> None:
+) -> bool:
     """
     TODO: comments :(
     """
@@ -59,8 +59,9 @@ def run_command(
                 f"Command {command} failed with exit code {output.returncode}:\n{output.stderr.strip()}\nPlease try again!",
                 style_name="error",
             )
-        else:
-            program_output(output.stdout.strip(), style_name="action")
+            return False
+
+        program_output(output.stdout.strip(), style_name="action")
         # send output to ai
         if ask:
             choices = [
@@ -73,6 +74,7 @@ def run_command(
             )
             if user_choice == "yes":
                 ai_response(output.stdout.strip(), api_config, history, paths)
+        return True
 
     except FileNotFoundError as e:
         logger.exception("FileNotFoundError: %s", e)
@@ -80,13 +82,15 @@ def run_command(
             f"Failed to find command {command}\nPlease try again!",
             style_name="error",
         )
+        return False
 
     except Exception as e:
         logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
+        return False
 
 
-def save_file(file: dict[str, str], overwrite: bool = False) -> None:
+def save_file(file: dict[str, str], overwrite: bool = False) -> bool:
     # file is in json format
     path = Path(file["path"]).expanduser()
     content = file["content"]
@@ -98,11 +102,13 @@ def save_file(file: dict[str, str], overwrite: bool = False) -> None:
     try:
         with open(path, "x") as f:
             f.write(content)
+        return True
 
     except FileExistsError as e:
         if overwrite:
             with open(path, "w") as f:
                 f.write(content)
+            return True
         else:
             choices = [("yes", "Yes"), ("no", "No")]
             user_choice = program_choice(
@@ -113,6 +119,7 @@ def save_file(file: dict[str, str], overwrite: bool = False) -> None:
             if user_choice == "yes":
                 with open(path, "w") as f:
                     f.write(content)
+                return True
             else:
                 # TODO return the file path just in case it changes
                 program_output(
@@ -125,12 +132,15 @@ def save_file(file: dict[str, str], overwrite: bool = False) -> None:
                 try:
                     with open(new_path, "x") as f:
                         f.write(content)
+                    return True
                 except FileExistsError:
                     program_output(
                         f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
                         style_name="error",
                     )
+                    return False
 
     except Exception as e:
         logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
+        return False

@@ -1,6 +1,6 @@
 import os
-import sys
 from dotenv import dotenv_values
+from typing import Literal, TypedDict
 import openai
 
 from main import program_output, user_input, program_choice
@@ -11,19 +11,18 @@ from log import logger
 
 def ai_response(
     prompt: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
-) -> str | None:
-    ai_response = ""
+) -> dict[str, str | bool] | None:
+    delta_list = []
     data_buffer = []
-    action_buffer = ""
+    action_buffer = []
     actionable = None
+    response_content = {"actionable": False, "content": ""}
 
     # ensure api info is valid every time an api call is made
-    try:
-        ensure_api(api_config, paths)
-    # only called if program couldn't get valid api info
-    except ValueError as e:
+    if not ensure_api(api_config, paths):
+        # only called if program couldn't get valid api info
         program_output(
-            f"I'm sorry, I cannot process your request! {e} Please verify your API credentials and update your {paths.env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
+            f"I'm sorry, I cannot process your request! Please verify your API credentials and update your {paths.env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
             style_name="error",
         )
         return None
@@ -45,14 +44,16 @@ def ai_response(
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
                     # accumulate the content, print until end of content or recieve actionable
                     delta = str(chunk.choices[0].delta.content)
-                    ai_response += delta
+                    delta_list.append(delta)
                     if "[JSON_START]" in delta:
                         printing_action = True
+                        response_content["actionable"] = True
                     if printing_action:
-                        action_buffer += delta
+                        action_buffer.append(delta)
                         if "[JSON_END]" in delta:
                             printing_action = False
-                            pre_str, rest = action_buffer.split("[JSON_START]")
+                            action_str = "".join(action_buffer)
+                            pre_str, rest = action_str.split("[JSON_START]")
                             actionable, post_str = rest.split("[JSON_END]")
                             data_buffer.extend(
                                 [pre_str, "incoming action", actionable, post_str]
@@ -77,27 +78,38 @@ def ai_response(
             "API information validation failed: invalid API key",
             style_name="error",
         )
+        return None
     except openai.BadRequestError as e:
         logger.exception("BadRequestError: %s", e)
         program_output(
             "API information validation failed: invalid model name",
             style_name="error",
         )
+        return None
     except openai.NotFoundError as e:
         logger.exception("NotFoundError: %s", e)
         program_output(
             "API information validation failed: invalid base URL",
             style_name="error",
         )
+        return None
     except Exception as e:
         logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
+        return None
 
     program_output("".join(data_buffer))
 
+    ai_response = "".join(delta_list)
+
     history.remember({"role": "assistant", "content": ai_response})
 
-    return actionable
+    if actionable:
+        response_content["content"] = actionable
+    else:
+        response_content["content"] = ai_response
+
+    return response_content
 
 
 def prompt_api_info() -> dict[str, str]:
@@ -169,8 +181,12 @@ def validate_api(config: dict[str, str], paths: PathManager) -> bool:
             choices,
         )
         if user_choice.lower() == "yes":
-            save_env_file(config, paths)
-
+            if save_env_file(config, paths):
+                program_output(f"Your .env file has been created at {paths.env_path}!")
+            else:
+                program_output(
+                    f"Sorry, I failed to create a .env file for you! If you would like to create one yourself, please do so at {paths.env_path}."
+                )
         return True
 
     except openai.AuthenticationError as e:
@@ -200,11 +216,11 @@ def validate_api(config: dict[str, str], paths: PathManager) -> bool:
         return False
 
 
-def save_env_file(config: dict[str, str], paths: PathManager) -> None:
+def save_env_file(config: dict[str, str], paths: PathManager) -> bool:
     path = paths.env_path
     content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
     file = {"action": "file", "path": path, "content": content}
-    save_file(file, overwrite=True)
+    return save_file(file, overwrite=True)
 
 
 def find_api_info(paths: PathManager) -> dict[str, str]:
@@ -248,15 +264,34 @@ def find_api_info(paths: PathManager) -> dict[str, str]:
         )
 
 
-def ensure_api(api_config: ApiConfig, paths: PathManager) -> None:
+def ensure_api(api_config: ApiConfig, paths: PathManager) -> bool:
     # ensures api info is set
     if api_config.model_name and api_config.base_url and api_config.api_key:
         # don't validate again b/c if these have been set, the user must've made a valid call before
-        return
+        return True
 
     program_output(
         "Your API credentials are not configured. Let's set those up now!",
         style_name="error",
     )
-    config = find_api_info(paths)
-    api_config.set_config(config)
+
+    # was unsure how to change so it doesn't return None since find_api raises an error
+    # --> obviously catch it w a try-except
+    try:
+        config = find_api_info(paths)
+        api_config.set_config(config)
+        return True
+    except ValueError as e:
+        logger.exception("ValueError: %s", e)
+        program_output(
+            f"Failed to configure API credentials: {e}",
+            style_name="error",
+        )
+        return False
+    except Exception as e:
+        logger.exception("Exception: %s", e)
+        program_output(
+            f"Failed to configure API credentials: {e}",
+            style_name="error",
+        )
+        return False
