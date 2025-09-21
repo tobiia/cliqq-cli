@@ -3,11 +3,17 @@ import sys
 from dotenv import dotenv_values
 import openai
 
-from main import program_output, user_input, program_choice, CliqqSession
+from main import program_output, user_input, program_choice
+from classes import ApiConfig, ChatHistory, PathManager
 from action import save_file
+from log import logger
+
+# FIXME fix up the type hints so order can't fuck things up
 
 
-def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str | None]:
+def ai_response(
+    prompt: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
+) -> str | None:
     ai_response = ""
     data_buffer = []
     action_buffer = ""
@@ -15,25 +21,25 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
 
     # ensure api info is valid every time an api call is made
     try:
-        ensure_api(session)
+        ensure_api(api_config, paths)
     # only called if program couldn't get valid api info
     except ValueError as e:
         program_output(
-            f"I'm sorry, I cannot process your request! {e} Please verify your API credentials and update your {session.env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
+            f"I'm sorry, I cannot process your request! {e} Please verify your API credentials and update your {paths.env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
             style_name="error",
         )
-        return session, None
+        return None
 
-    client = openai.OpenAI(api_key=session.api_key, base_url=session.base_url)
+    client = openai.OpenAI(api_key=api_config.api_key, base_url=api_config.base_url)
 
-    session.remember({"role": "user", "content": prompt})
+    history.remember({"role": "user", "content": prompt})
 
     try:
 
         # don't really need generator?
         with client.chat.completions.create(
-            model=session.model_name,
-            messages=session._chat_history,  # type: ignore
+            model=api_config.model_name,
+            messages=history.chat_history,  # type: ignore
             stream=True,
         ) as stream:  # type: ignore
             for chunk in stream:
@@ -67,32 +73,36 @@ def ai_response(prompt: str, session: CliqqSession) -> tuple[CliqqSession, str |
 
                 if chunk.choices[0].finish_reason == "stop":
                     break  # stop if the finish reason is 'stop
-    except openai.AuthenticationError:
+    except openai.AuthenticationError as e:
+        logger.exception("AuthenticationError: %s", e)
         program_output(
             "API information validation failed: invalid API key",
             style_name="error",
         )
-    except openai.BadRequestError:
+    except openai.BadRequestError as e:
+        logger.exception("BadRequestError: %s", e)
         program_output(
             "API information validation failed: invalid model name",
             style_name="error",
         )
-    except openai.NotFoundError:
+    except openai.NotFoundError as e:
+        logger.exception("NotFoundError: %s", e)
         program_output(
             "API information validation failed: invalid base URL",
             style_name="error",
         )
     except Exception as e:
+        logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
 
     program_output("".join(data_buffer))
 
-    session.remember({"role": "assistant", "content": ai_response})
+    history.remember({"role": "assistant", "content": ai_response})
 
-    return session, actionable
+    return actionable
 
 
-def prompt_api_info(session: CliqqSession) -> dict[str, str]:
+def prompt_api_info() -> dict[str, str]:
     # TODO create default w openai
     # TODO only change 1 field
     instructions = """
@@ -139,7 +149,7 @@ def prompt_api_info(session: CliqqSession) -> dict[str, str]:
     return config
 
 
-def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
+def validate_api(config: dict[str, str], paths: PathManager) -> bool:
     try:
         client = openai.OpenAI(api_key=config["api_key"], base_url=config["base_url"])
 
@@ -161,44 +171,48 @@ def validate_api(config: dict[str, str], session: CliqqSession) -> bool:
             choices,
         )
         if user_choice.lower() == "yes":
-            save_env_file(config, session)
+            save_env_file(config, paths)
 
         return True
 
-    except openai.AuthenticationError:
+    except openai.AuthenticationError as e:
+        logger.exception("AuthenticationError: %s", e)
         program_output(
             "API information validation failed: invalid API key",
             style_name="error",
         )
         return False
-    except openai.BadRequestError:
+    except openai.BadRequestError as e:
+        logger.exception("BadRequestError: %s", e)
         program_output(
             "API information validation failed: invalid model name",
             style_name="error",
         )
         return False
-    except openai.NotFoundError:
+    except openai.NotFoundError as e:
+        logger.exception("NotFoundError: %s", e)
         program_output(
             "API information validation failed: invalid base URL",
             style_name="error",
         )
         return False
     except Exception as e:
+        logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
         return False
 
 
-def save_env_file(config: dict[str, str], session: CliqqSession) -> None:
-    path = session.env_path
+def save_env_file(config: dict[str, str], paths: PathManager) -> None:
+    path = paths.env_path
     content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
     file = {"action": "file", "path": path, "content": content}
-    save_file(file, session, overwrite=True)
+    save_file(file, overwrite=True)
 
 
-def find_api_info(session: CliqqSession) -> dict[str, str]:
+def find_api_info(paths: PathManager) -> dict[str, str]:
     config = {}
 
-    env_file = session.env_path
+    env_file = paths.env_path
 
     # check values in .env if it exists
     if os.path.exists(env_file):
@@ -213,7 +227,7 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
                 "base_url": base_url,
                 "api_key": api_key,
             }
-            if validate_api(config, session):
+            if validate_api(config, paths):
                 return config
 
     # if .env check fails, check sys env vars
@@ -223,12 +237,12 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
 
     if model_name and base_url and api_key:
         config = {"model_name": model_name, "base_url": base_url, "api_key": api_key}
-        if validate_api(config, session):
+        if validate_api(config, paths):
             return config
 
     # if neither, prompt the user for api info
-    config = prompt_api_info(session)
-    if validate_api(config, session):
+    config = prompt_api_info()
+    if validate_api(config, paths):
         return config
     else:
         raise ValueError(
@@ -236,9 +250,9 @@ def find_api_info(session: CliqqSession) -> dict[str, str]:
         )
 
 
-def ensure_api(session: CliqqSession) -> None:
+def ensure_api(api_config: ApiConfig, paths: PathManager) -> None:
     # ensures api info is set
-    if session.model_name and session.base_url and session.api_key:
+    if api_config.model_name and api_config.base_url and api_config.api_key:
         # don't validate again b/c if these have been set, the user must've made a valid call before
         return
 
@@ -246,5 +260,5 @@ def ensure_api(session: CliqqSession) -> None:
         "Your API credentials are not configured. Let's set those up now!",
         style_name="error",
     )
-    config = find_api_info(session)
-    session.set_config(config)
+    config = find_api_info(paths)
+    api_config.set_config(config)

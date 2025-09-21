@@ -2,6 +2,7 @@ import os
 import shlex
 import sys
 import logging
+from pathlib import Path
 
 from prompt_toolkit import prompt
 from prompt_toolkit import print_formatted_text
@@ -10,48 +11,12 @@ from styles import DEFAULT_STYLE
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit import choice
 
-from prep import prep_prompt, parse_commands, BufferingFileHandler
-from commands import dispatch, CliqqSession, exit_cliqq
+from classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
+from prep import prep_prompt, parse_commands
+from commands import dispatch, exit_cliqq
 from ai import ai_response
 from action import run
-
-
-def setup_logging() -> logging.Logger:
-    logger = logging.getLogger("cliqq")
-    # root logger setup
-    logging.basicConfig(encoding="utf-8", level=logging.DEBUG)  # catch all
-
-    debug_handler = BufferingFileHandler("debug.log", 3)
-    debug_handler.setFormatter(
-        logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
-    )
-    debug_handler.setLevel(logging.ERROR)
-
-    io_handler = BufferingFileHandler("cliqq.log")
-    io_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s"))
-
-    # Attach handlers
-    logger.addHandler(debug_handler)
-    logger.addHandler(io_handler)
-
-    return logger
-
-
-# should use pathlib Paths instead of str
-def create_paths(session: CliqqSession):
-    home_path = os.path.join(os.path.expanduser("~"), ".cliqq")
-    # NOTE don't need to do this in every func b/c this func is always called
-    os.makedirs(os.path.dirname(home_path), exist_ok=True)
-
-    session.set_path("home_path", home_path)
-
-    log_path = os.path.join(home_path, "log.txt")
-    session.set_path("log_path", log_path)
-
-    env_path = os.path.join(home_path, ".env")
-    session.set_path("env_path", env_path)
-
-    session.set_path("script_path", os.path.dirname(__file__))
+from log import logger
 
 
 # NOTE: for when this is a pip-installable package
@@ -64,8 +29,8 @@ def create_paths(session: CliqqSession):
 
 
 # NOTE: for while i'm testing
-def load_template_local(name: str, session: CliqqSession) -> str:
-    path = os.path.join(session.script_path, "templates", name)
+def load_template_local(file_name: str, script_path: Path) -> str:
+    path = script_path.joinpath("templates", file_name)
     with open(path, encoding="utf-8") as f:
         return f.read()
 
@@ -80,7 +45,6 @@ def user_input(sensitive: bool = False) -> str:
         message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
     if not sensitive:
-        logger = logging.getLogger("cliqq")
         logger.info(f"{to_plain_text(message)}{input}\n")
     return input
 
@@ -94,7 +58,6 @@ def program_choice(question: str, choices: list, sensitive: bool = False) -> str
         style=DEFAULT_STYLE,
     )
     if not sensitive:
-        logger = logging.getLogger("cliqq")
         logger.info(f"{to_plain_text(message[0][1])}{question}\n")
         logger.info(f">> {result}\n")
     return result
@@ -139,26 +102,29 @@ def main() -> None:
     """
 
     # set up session
-    session = CliqqSession()
-    create_paths(session)
+    api_config = ApiConfig()
+    history = ChatHistory()
+    command_registry = CommandRegistry()
+    paths = PathManager()
+    paths.create_paths()
 
     user_prompt = None
     input = ""
     template = ""
 
     # or "reminder_template.txt"
-    template = load_template_local("starter_template.txt", session)
+    template = load_template_local("starter_template.txt", paths.script_path)
 
-    session.remember({"role": "system", "content": template})
+    history.remember({"role": "system", "content": template})
 
     # better to defer API validation until first op that requires it
     # so the user can run simple commands w/o setting up API info
 
     # check for if program was invoked with a command
     # build the parser once and reuse it in the interactive loop
-    parser = parse_commands(session)
+    parser = parse_commands(command_registry)
     # store parser on session so help cmd can access it
-    session._parser = parser
+    command_registry.parser = parser
     try:
         # get from sys.argv
         args = parser.parse_args()
@@ -167,19 +133,19 @@ def main() -> None:
 
             # if program was called in non-interactively
             if args.command == "q":
-                dispatch(args, session)
+                dispatch(api_config, history, command_registry, paths, args)
                 sys.exit()
 
             program_output(intro)
             program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-            dispatch(args, session)
+            dispatch(api_config, history, command_registry, paths, args)
 
         else:
             program_output(intro)
             program_output(
                 "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?",
             )
-
+    # FIXME check that this is right
     except SystemExit:
         # argparse calls sys.exit() on errors
         program_output("Hello! I am Cliqq, the command-line AI chatbot.")
@@ -205,22 +171,22 @@ def main() -> None:
                 if args.command == "q":
                     input = args.arg
                 else:
-                    dispatch(args, session)
+                    dispatch(api_config, history, command_registry, paths, args)
                     continue
 
         except (SystemExit, ValueError):
-            # user did not enter a command so just recognize it as a normal prompt
-            pass
+            # FIXME user did not enter a command so just recognize it as a normal prompt
+            input = args.arg
 
         # console output is handled within functions
         user_prompt = prep_prompt(input, template)
-        session, actionable = ai_response(user_prompt, session)
+        session, actionable = ai_response(user_prompt, api_config, history, paths)
         if actionable:
-            run(actionable, session)
+            run(actionable, api_config, history, paths)
 
         input = user_input()
 
-    exit_cliqq(session)
+    exit_cliqq()
 
 
 if __name__ == "__main__":

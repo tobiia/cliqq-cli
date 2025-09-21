@@ -1,30 +1,37 @@
 import json
 import os
+from pathlib import Path
 import subprocess
 import shlex
 
-from main import user_input, program_output, program_choice, CliqqSession
+from main import user_input, program_output, program_choice
+from classes import ApiConfig, ChatHistory, PathManager
 from ai import ai_response
+from log import logger
 
 
-def run(actionable: str, session: CliqqSession) -> None:
+def run(
+    actionable: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
+) -> None:
     try:
         data = json.loads(actionable)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        logger.exception("Exception: %s", e)
         program_output(
             "Something went wrong with my response and I can't parse it. I'm sorry! Please ask me again!",
             style_name="error",
         )
         return
     except Exception as e:
+        logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
         return
 
     action = data.get("action")
     if action == "command":
-        run_command(data["command"], session)
+        run_command(data["command"], api_config, history, paths)
     elif action == "file":
-        save_file(data, session)
+        save_file(data)
     else:
         program_output(
             f"Failed to find action '{action}'. Please try again!",
@@ -32,7 +39,13 @@ def run(actionable: str, session: CliqqSession) -> None:
         )
 
 
-def run_command(command: str, session: CliqqSession, ask: bool = True) -> None:
+def run_command(
+    command: str,
+    api_config: ApiConfig,
+    history: ChatHistory,
+    paths: PathManager,
+    ask: bool = True,
+) -> None:
     """
     TODO: comments :(
     """
@@ -59,41 +72,41 @@ def run_command(command: str, session: CliqqSession, ask: bool = True) -> None:
                 choices,
             )
             if user_choice == "yes":
-                ai_response(output.stdout.strip(), session)
+                ai_response(output.stdout.strip(), api_config, history, paths)
 
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        logger.exception("FileNotFoundError: %s", e)
         program_output(
             f"Failed to find command {command}\nPlease try again!",
             style_name="error",
         )
 
     except Exception as e:
+        logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
 
 
-def save_file(
-    file: dict[str, str], session: CliqqSession, overwrite: bool = False
-) -> None:
+def save_file(file: dict[str, str], overwrite: bool = False) -> None:
     # file is in json format
-    path = os.path.expanduser(file["path"])
+    path = Path(file["path"]).expanduser()
     content = file["content"]
-    name = os.path.basename(path)
+    file_name = path.name
 
     # ensure the directory exists
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    path.parent.mkdir(exist_ok=True)
 
     try:
         with open(path, "x") as f:
             f.write(content)
 
-    except FileExistsError:
+    except FileExistsError as e:
         if overwrite:
             with open(path, "w") as f:
                 f.write(content)
         else:
             choices = [("yes", "Yes"), ("no", "No")]
             user_choice = program_choice(
-                f"The file '{name}' already exists. Should I overwrite its content?",
+                f"The file '{file_name}' already exists. Should I overwrite its content?",
                 choices,
             )
 
@@ -107,7 +120,7 @@ def save_file(
                     style_name="action",
                 )
                 new_name = user_input()
-                new_path = os.path.join(os.path.dirname(path), new_name)
+                new_path = path.parent / new_name
 
                 try:
                     with open(new_path, "x") as f:
@@ -119,4 +132,5 @@ def save_file(
                     )
 
     except Exception as e:
+        logger.exception("Exception: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")

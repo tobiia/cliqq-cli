@@ -3,37 +3,13 @@ import sys
 import re
 import psutil
 import argparse
-import logging
-from commands import CliqqSession
 
-
-class BufferingFileHandler(logging.Handler):
-    def __init__(self, filename: str, buffer_size: int = 10):
-        super().__init__()
-        self._filename = filename
-        self._buffer_size = buffer_size
-        self._buffer: list[str] = []
-
-    # log info is passed around in LogRecord instances
-    def emit(self, record: logging.LogRecord):
-        msg = self.format(record)
-        self._buffer.append(msg)
-        if len(self._buffer) >= self._buffer_size:
-            self.flush()
-
-    def flush(self):
-        if not self._buffer:
-            return
-        os.makedirs(os.path.dirname(self._filename), exist_ok=True)
-        log_text = "".join(self._buffer)
-        with open(self._filename, "a") as f:
-            f.write(log_text)
-        self._buffer.clear()
+from classes import CommandRegistry
 
 
 # usage
 # args = parser.parse_args([list of each argument given]) = obj with properties that correspond to args given
-def parse_commands(session: CliqqSession) -> argparse.ArgumentParser:
+def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="cliqq", description="A simple, lightweight command line chat assistant"
     )
@@ -53,7 +29,7 @@ def parse_commands(session: CliqqSession) -> argparse.ArgumentParser:
     """
     subparsers = parser.add_subparsers(dest="command")
 
-    for command, info in session.commands.items():
+    for command, info in registry.commands.items():
         subparser = subparsers.add_parser(command, help=info["description"])
 
         if info.get("args") is not None:

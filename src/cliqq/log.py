@@ -3,6 +3,7 @@ import os
 import sys
 
 
+# can use MemoryHandler instead?
 class BufferingFileHandler(logging.Handler):
     def __init__(self, filename: str, buffer_size: int = 10):
         super().__init__()
@@ -57,8 +58,8 @@ def setup_logging() -> logging.Logger:
     return logger
 
 
-import logging
-
-sys.excepthook = handle_exception
+# FIXME check that this object is even set up?
 
 logger = setup_logging()
+
+sys.excepthook = handle_exception
