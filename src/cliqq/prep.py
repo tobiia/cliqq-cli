@@ -14,15 +14,6 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
         prog="cliqq", description="A simple, lightweight command line chat assistant"
     )
 
-    # ex. cliqq how to make pasta
-    # args = parser.parse_args(["cliqq", "how to make pasta"])
-    # args.prompt = "how to make pasta"
-    parser.add_argument(
-        "prompt",
-        nargs=argparse.REMAINDER,
-        help="Start a conversation with Cliqq with your prompt",
-    )
-
     """ ex. cliqq q "how to make pasta", q = subcommand, "how to make pasta" = arg for sub
     commands are considered args, so below line adds an attr same as the one above
     so can access command via args.command, which is an obj that can have its own args and such 
@@ -32,9 +23,20 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     for command, info in registry.commands.items():
         subparser = subparsers.add_parser(command, help=info["description"])
 
-        if info.get("args") is not None:
+        if info.get("args", None) is not None:
             subparser.add_argument("arg", nargs=argparse.REMAINDER, help=info["args"])
             # NOTE parser_foo.set_defaults(func=foo) --> use if you can figure out a way to avoid passing session explicitly
+
+    # ex. cliqq how to make pasta
+    # args = parser.parse_args(["cliqq", "how to make pasta"])
+    # args.prompt = "how to make pasta"
+    # order when adding subcommands and args matters a lot hence above
+    parser.add_argument(
+        "prompt",
+        nargs=argparse.REMAINDER,
+        help="Start a conversation with Cliqq with your prompt",
+    )
+
     return parser
 
 

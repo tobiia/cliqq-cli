@@ -58,8 +58,6 @@ def setup_logging() -> logging.Logger:
     return logger
 
 
-# FIXME check that this object is even set up?
-
 logger = setup_logging()
 
 sys.excepthook = handle_exception

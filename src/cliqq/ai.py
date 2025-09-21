@@ -8,8 +8,6 @@ from classes import ApiConfig, ChatHistory, PathManager
 from action import save_file
 from log import logger
 
-# FIXME fix up the type hints so order can't fuck things up
-
 
 def ai_response(
     prompt: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager

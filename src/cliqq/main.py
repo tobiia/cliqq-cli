@@ -130,13 +130,8 @@ def main() -> None:
         args = parser.parse_args()
 
         if args.command:
-
-            # if program was called in non-interactively
-            if args.command == "q":
-                dispatch(api_config, history, command_registry, paths, args)
-                sys.exit()
-
-            program_output(intro)
+            if args.command != "q":
+                program_output(intro)
             program_output("Hello! I am Cliqq, the command-line AI chatbot.")
             dispatch(api_config, history, command_registry, paths, args)
 
@@ -145,14 +140,11 @@ def main() -> None:
             program_output(
                 "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?",
             )
-    # FIXME check that this is right
+
     except SystemExit:
         # argparse calls sys.exit() on errors
+        # if user only calls cliqq w 1 word (ex. cliqq hi) it'll assume it's a subcommand and raise an error since it's not registered
         program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-        program_output(
-            "That is not a valid command.\nYou can start talking to cliqq by typing 'cliqq'\nYou can get an immediate response to a question by typing 'cliqq q [question]'\nType 'help' for details and more options",
-            style_name="error",
-        )
 
     # input to start interactive loop
     input = user_input()
@@ -175,12 +167,11 @@ def main() -> None:
                     continue
 
         except (SystemExit, ValueError):
-            # FIXME user did not enter a command so just recognize it as a normal prompt
             input = args.arg
 
         # console output is handled within functions
         user_prompt = prep_prompt(input, template)
-        session, actionable = ai_response(user_prompt, api_config, history, paths)
+        actionable = ai_response(user_prompt, api_config, history, paths)
         if actionable:
             run(actionable, api_config, history, paths)
 

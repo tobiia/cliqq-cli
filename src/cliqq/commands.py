@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import inspect
 from typing import Callable, NoReturn, Optional, TypedDict
 
 from classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
@@ -75,9 +76,7 @@ def quick_response(
     user_prompt: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
 ) -> None:
     ai_response(user_prompt, api_config, history, paths)
-
-
-import inspect
+    exit_cliqq()
 
 
 def dispatch(
@@ -102,10 +101,9 @@ def dispatch(
     if "paths" in sig.parameters:
         kwargs["paths"] = paths
 
-    if command_info.get("args") is not None:
+    if command_info.get("args", None) is not None:
         # functions that take positional args
         # currently all commands only take one, alter if future commands need more
         kwargs["args"] = args.arg
-        func(**kwargs)
-    else:
-        func(**kwargs)
+
+    func(**kwargs)
