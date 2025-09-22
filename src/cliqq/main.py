@@ -120,6 +120,31 @@ def handle_init_args(
         return None
 
 
+def handle_input(
+    input: str,
+    parser: argparse.ArgumentParser,
+    api_config: ApiConfig,
+    history: ChatHistory,
+    command_registry: CommandRegistry,
+    paths: PathManager,
+) -> str:
+
+    tokens = shlex.split(input)
+
+    # removing cliqq b/c argparse will interpret it as a command (prog)
+    if tokens and tokens[0] == "cliqq":
+        tokens = tokens[1:]
+
+    args = parse_input(tokens, parser)
+
+    if args.command:
+        dispatch(api_config, history, command_registry, paths, args)
+        return ""
+    else:
+        # treat all args as an AI prompt
+        return " ".join(args.prompt)
+
+
 def main() -> None:
     # REVIEW time for testing...
 
@@ -168,23 +193,11 @@ def main() -> None:
         input = user_input().strip()
 
     # interactive mode below
-    while input != "exit":
+    while input not in ("exit", "/exit"):
 
-        # check if user gave command
-        tokens = shlex.split(input)
-
-        # removing cliqq b/c argparse will interpret it as a command (prog)
-        if tokens and tokens[0] == "cliqq":
-            tokens = tokens[1:]
-
-        args = parse_input(tokens, parser)
-
-        if args.command:
-            dispatch(api_config, history, command_registry, paths, args)
-            input = ""
-        else:
-            # treat all args as an AI prompt
-            input = " ".join(args.prompt)
+        input = handle_input(
+            input, parser, api_config, history, command_registry, paths
+        )
 
         # most console output is handled within functions
 

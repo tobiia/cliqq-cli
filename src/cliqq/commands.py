@@ -76,10 +76,8 @@ def clear_context(history: ChatHistory) -> None:
 def quick_response(
     user_prompt: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
 ) -> None:
-    if ai_response(user_prompt, api_config, history, paths):
-        program_output("I hope that answered your question!")
-    else:
-        program_output("Sorry for not being able to answer your question")
+
+    ai_response(user_prompt, api_config, history, paths)
     exit_cliqq()
 
 
