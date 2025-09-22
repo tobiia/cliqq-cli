@@ -1,5 +1,7 @@
 import shlex
 import logging
+import sys
+import argparse
 from pathlib import Path
 
 from prompt_toolkit import prompt
@@ -10,7 +12,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit import choice
 
 from classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
-from prep import prep_prompt, parse_commands
+from prep import prep_prompt, parse_commands, parse_input
 from commands import dispatch, exit_cliqq
 from ai import ai_response
 from action import run
@@ -83,6 +85,41 @@ def program_output(
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
+def handle_init_args(
+    intro: str,
+    parser: argparse.ArgumentParser,
+    api_config: ApiConfig,
+    history: ChatHistory,
+    command_registry: CommandRegistry,
+    paths: PathManager,
+) -> str | None:
+
+    tokens = sys.argv[1:]
+    if tokens and tokens[0] == "cliqq":
+        tokens = tokens[1:]
+
+    args = parse_input(tokens, parser)
+
+    if args.command:
+        if args.command == "/q":
+            dispatch(api_config, history, command_registry, paths, args)
+            return None
+        program_output(intro)
+        program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+        dispatch(api_config, history, command_registry, paths, args)
+        return None
+    elif args.prompt:
+        program_output(intro)
+        program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+        return " ".join(args.prompt)
+    else:
+        program_output(intro)
+        program_output(
+            "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?"
+        )
+        return None
+
+
 def main() -> None:
     # REVIEW time for testing...
 
@@ -120,81 +157,64 @@ def main() -> None:
     parser = parse_commands(command_registry)
     # store parser on session so help cmd can access it
     command_registry.parser = parser
-    try:
-        # get from sys.argv
-        args = parser.parse_args()
 
-        if args.command:
-            if args.command != "q":
-                program_output(intro)
-            program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-            dispatch(api_config, history, command_registry, paths, args)
+    init_arg = handle_init_args(
+        intro, parser, api_config, history, command_registry, paths
+    )
 
-        else:
-            program_output(intro)
-            program_output(
-                "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?",
-            )
-
-    except SystemExit:
-        # argparse calls sys.exit() on errors
-        # if user only calls cliqq w 1 word (ex. cliqq hi) it'll assume it's a subcommand and raise an error since it's not registered
-        program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-
-    # input to start interactive loop
-    input = user_input()
+    if init_arg:
+        input = init_arg
+    else:
+        input = user_input().strip()
 
     # interactive mode below
     while input != "exit":
 
-        try:
-            # check if user gave command
-            tokens = shlex.split(input.strip())
-            # removing cliqq b/c argparse will interpret it as a command (prog)
-            if tokens and tokens[0] == "cliqq":
-                tokens = tokens[1:]
-            args = parser.parse_args(tokens)
+        # check if user gave command
+        tokens = shlex.split(input)
 
-            if args.command:
+        # removing cliqq b/c argparse will interpret it as a command (prog)
+        if tokens and tokens[0] == "cliqq":
+            tokens = tokens[1:]
 
-                # ignore cmd and just take the user's prompt
-                if args.command == "q":
-                    input = " ".join(args.arg)
-                else:
-                    dispatch(api_config, history, command_registry, paths, args)
-                    continue
+        args = parse_input(tokens, parser)
 
-        except (SystemExit, ValueError):
-            input = input.strip()
+        if args.command:
+            dispatch(api_config, history, command_registry, paths, args)
+            input = ""
+        else:
+            # treat all args as an AI prompt
+            input = " ".join(args.prompt)
 
         # most console output is handled within functions
 
-        user_prompt = prep_prompt(input, template)
+        if input:
+            user_prompt = prep_prompt(input, template)
 
-        response_content = ai_response(user_prompt, api_config, history, paths)
+            response_content = ai_response(user_prompt, api_config, history, paths)
 
-        if response_content:
-            if response_content["actionable"]:
-                actionable = response_content["content"]
-                if run(actionable, api_config, history, paths):  # type: ignore
-                    program_output(
-                        "And your request has been completed! Do you have another question?"
-                    )
+            if response_content:
+                if response_content["actionable"]:
+                    actionable = response_content["content"]
+                    if run(actionable, api_config, history, paths):  # type: ignore
+                        program_output(
+                            "And your request has been completed! Do you have another question?"
+                        )
+                    else:
+                        program_output(
+                            "I'm sorry I couldn't complete your request. Do you have another one for me?"
+                        )
                 else:
+                    # maybe have a bank of different wording for this?
                     program_output(
-                        "I'm sorry I couldn't complete your request. Do you have another one for me?"
+                        "Okay, what is your next question or request? I'm all ears!"
                     )
             else:
-                # maybe have a bank of different wording for this?
                 program_output(
-                    "Okay, what is your next question or request? I'm all ears!"
+                    "I'm sorry I couldn't get an answer for you. Would you like to ask me another question?"
                 )
-        else:
-            program_output(
-                "I'm sorry I couldn't get an answer for you. Would you like to ask me another question?"
-            )
 
-        input = user_input()
+        input = user_input().strip()
 
     exit_cliqq()
 

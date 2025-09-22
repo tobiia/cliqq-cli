@@ -40,6 +40,17 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     return parser
 
 
+def parse_input(
+    tokens: list[str], parser: argparse.ArgumentParser
+) -> argparse.Namespace:
+    try:
+        return parser.parse_args(tokens)
+    except SystemExit:
+        # occurs if argsv only has 1 word or if user starts prompt with "cliqq"
+        # fallback: treat everything as a prompt
+        return argparse.Namespace(command=None, prompt=tokens)
+
+
 def prep_prompt(prompt: str, template: str) -> str:
     op_sys = sys.platform
     shell = psutil.Process(os.getppid()).name()
