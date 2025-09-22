@@ -5,14 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "cliqq"
 version = "0.0.1"
-# check using tox + vermin or alternatives
 dependencies = [
-  "prompt_toolkit>=3.0.0",
-  "psutil>=5.9.0",
-  "python-dotenv>=1.0.0",
-  "openai>=1.0.0",
-  # pytest
-  # psutil
+  "openai==1.108.1",
+  "prompt_toolkit==3.0.52",
+  "psutil==7.1.0",
+  "python-dotenv==1.1.1",
 ]
 authors = [{ name = "Tobi Adesanya", email = "tobijadesanya@gmail.com" }]
 description = "a simple command line chat assistant"
