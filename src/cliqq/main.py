@@ -149,20 +149,23 @@ def main() -> None:
 
         try:
             # check if user gave command
-            args = shlex.split(input.strip())
-            args = parser.parse_args(args)
+            tokens = shlex.split(input.strip())
+            # removing cliqq b/c argparse will interpret it as a command (prog)
+            if tokens and tokens[0] == "cliqq":
+                tokens = tokens[1:]
+            args = parser.parse_args(tokens)
 
             if args.command:
 
                 # ignore cmd and just take the user's prompt
                 if args.command == "q":
-                    input = args.arg
+                    input = " ".join(args.arg)
                 else:
                     dispatch(api_config, history, command_registry, paths, args)
                     continue
 
         except (SystemExit, ValueError):
-            input = args.arg
+            input = input.strip()
 
         # most console output is handled within functions
 
@@ -172,8 +175,8 @@ def main() -> None:
 
         if response_content:
             if response_content["actionable"]:
-                actionable = response_content.get("content")
-                if run(actionable, api_config, history, paths):
+                actionable = response_content["content"]
+                if run(actionable, api_config, history, paths):  # type: ignore
                     program_output(
                         "And your request has been completed! Do you have another question?"
                     )
