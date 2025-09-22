@@ -9,6 +9,7 @@ from classes import CommandRegistry
 
 # usage
 # args = parser.parse_args([list of each argument given]) = obj with properties that correspond to args given
+# note: you always have .prompt, command and args are optional
 def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="cliqq", description="A simple, lightweight command line chat assistant"
@@ -19,12 +20,13 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     so can access command via args.command, which is an obj that can have its own args (add_argument) and such 
     """
     subparsers = parser.add_subparsers(dest="command")
+    # dest means .command always exists
 
     for command_name, command in registry.commands.items():
         subparser = subparsers.add_parser(command_name, help=command.description)
 
         if command.args:
-            subparser.add_argument("arg", nargs=argparse.REMAINDER, help=command.args)
+            subparser.add_argument("args", nargs="+", help=command.args)
             # NOTE parser_foo.set_defaults(func=foo) --> use if you can figure out a way to avoid passing session explicitly
 
     # ex. cliqq how to make pasta
@@ -51,11 +53,11 @@ def parse_input(
         return parser.parse_args(tokens)
     except SystemExit:
         # occurs if argsv only has 1 word non-prompt or if user starts prompt with "cliqq"
-        # or if user enters a command with no prompts with a prompt
+        # or if user enters a command with no args with an argument
         # fallback: treat everything as a prompt
         if tokens and tokens[0].startswith("/"):
             # user tried a command but misused it
-            return argparse.Namespace(command="/invalid", prompt=tokens)
+            return argparse.Namespace(command="/invalid", args=tokens, prompt=[])
         return argparse.Namespace(command=None, prompt=tokens)
 
 

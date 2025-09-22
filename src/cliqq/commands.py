@@ -86,9 +86,9 @@ def dispatch(
     history: ChatHistory,
     registry: CommandRegistry,
     paths: PathManager,
-    args,  # probably a namespace?
+    user_input,  # probably a namespace?
 ):
-    command = registry.commands[args.command]
+    command = registry.commands[user_input.command]
 
     func = command.function
 
@@ -104,10 +104,10 @@ def dispatch(
     if "paths" in sig.parameters:
         kwargs["paths"] = paths
 
+    # if this Command takes positional arguments
     if command.args:
-        # functions that take positional args
         # currently all commands only take one, alter if future commands need more
-        kwargs["args"] = args.arg
+        kwargs["args"] = user_input.args
 
     func(**kwargs)
 

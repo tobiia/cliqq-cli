@@ -30,10 +30,13 @@ from log import logger
 
 
 # NOTE: for while i'm testing
-def load_template_local(file_name: str, script_path: Path) -> str:
-    path = script_path.joinpath("templates", file_name)
-    with open(path, encoding="utf-8") as f:
-        return f.read()
+def load_template(file_path: Path) -> str:
+    try:
+        with open(file_path) as f:
+            return f.read()
+    except FileNotFoundError as e:
+        logger.exception("FileNotFoundError: %s", e)
+        return "You are a command line assistant running in a {OS} {SHELL} in {CWD}. {QUESTION}"
 
 
 def user_input(sensitive: bool = False) -> str:
@@ -97,12 +100,12 @@ def handle_init_args(
 
     tokens = sys.argv
 
-    args = parse_input(tokens, parser)
+    parsed_input = parse_input(tokens, parser)
 
-    if args.command:
-        if args.command == "/q":
-            dispatch(api_config, history, command_registry, paths, args)
-        elif args.command == "/invalid":
+    if parsed_input.command:
+        if parsed_input.command == "/q":
+            dispatch(api_config, history, command_registry, paths, parsed_input)
+        elif parsed_input.command == "/invalid":
             program_output(
                 "You have entered a command incorrectly. Type just '/help' to learn more.",
                 style_name="error",
@@ -110,12 +113,12 @@ def handle_init_args(
         else:
             program_output(intro)
             program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-            dispatch(api_config, history, command_registry, paths, args)
+            dispatch(api_config, history, command_registry, paths, parsed_input)
         return None
-    elif args.prompt:
+    elif parsed_input.prompt:
         program_output(intro)
         program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-        return " ".join(args.prompt)
+        return " ".join(parsed_input.prompt)
     else:
         program_output(intro)
         program_output(
@@ -135,20 +138,20 @@ def handle_input(
 
     tokens = shlex.split(input)
 
-    args = parse_input(tokens, parser)
+    parsed_input = parse_input(tokens, parser)
 
-    if args.command:
-        if args.command == "/invalid":
+    if parsed_input.command:
+        if parsed_input.command == "/invalid":
             program_output(
                 "You have entered a command incorrectly. Type just '/help' to learn more.",
                 style_name="error",
             )
         else:
-            dispatch(api_config, history, command_registry, paths, args)
+            dispatch(api_config, history, command_registry, paths, parsed_input)
         return ""
     else:
         # treat all args as an AI prompt
-        return " ".join(args.prompt)
+        return " ".join(parsed_input.prompt)
 
 
 def main() -> None:
@@ -178,10 +181,9 @@ def main() -> None:
     input = ""
     template = ""
 
-    # or "reminder_template.txt"
-    template = load_template_local("starter_template.txt", paths.script_path)
-
+    template = load_template(paths.script_path / "templates" / "starter_template.txt")
     history.remember({"role": "system", "content": template})
+    template = load_template(paths.script_path / "templates" / "reminder_template.txt")
 
     # check for if program was invoked with a command
     # build the parser once and reuse it in the interactive loop
