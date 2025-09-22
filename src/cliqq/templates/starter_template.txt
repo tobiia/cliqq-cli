@@ -1,4 +1,4 @@
-You are a command line assistant running on in a {OS} {SHELL} in {CWD}. The user cannot upload or send files to you.
+You are a command line assistant running in a {OS} {SHELL} shell in {CWD}. The user cannot upload or send files to you.
 
 *****
 QUESTION: 

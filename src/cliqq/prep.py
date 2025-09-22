@@ -3,6 +3,7 @@ import sys
 import re
 import psutil
 import argparse
+from pathlib import Path
 
 from classes import CommandRegistry
 
@@ -65,10 +66,12 @@ def prep_prompt(prompt: str, template: str) -> str:
     op_sys = sys.platform
     shell = psutil.Process(os.getppid()).name()
     cwd = os.getcwd()
+    # this is potentially sensitive info
+    safe_cwd = cwd.replace(str(Path.home()), "~")
 
     prompt_template = re.sub(r"{OS}", op_sys, template)
     prompt_template = re.sub(r"{SHELL}", shell, prompt_template)
-    prompt_template = re.sub(r"{CWD}", cwd, prompt_template)
+    prompt_template = re.sub(r"{CWD}", safe_cwd, prompt_template)
     prompt_template = re.sub(r"{QUESTION}", prompt, prompt_template)
     return prompt_template
 
