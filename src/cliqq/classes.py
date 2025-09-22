@@ -1,17 +1,10 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Callable, NoReturn, Optional, TypedDict
+from typing import Callable
 
 from action import run_command
-from commands import (
-    exit_cliqq,
-    show_log,
-    clear_log,
-    clear,
-    clear_context,
-    quick_response,
-)
+from commands import Command, DEFAULT_COMMANDS
 
 # should maybe use dependency injection (FastAPI) or contextvars (Flask)...
 
@@ -80,67 +73,16 @@ class ChatHistory:
         self._chat_history.clear()
 
 
-# for typing...probably not necessary
-class CommandSpec(TypedDict):
-    description: str
-    # Callable[[types of the args...], return type]
-    # below = any callable, any args, returning anything --> most general
-    function: Callable[..., object]
-    args: Optional[str]  # means None or whatever is written
-
-
 class CommandRegistry:
     def __init__(self):
         self._parser: argparse.ArgumentParser = argparse.ArgumentParser()
-        self._commands: dict[str, CommandSpec] = {
-            # also -h or --help b/c of argparse by default
-            "help": {
-                "description": "List Cliqq commands and what they do",
-                "function": help,
-                "args": None,
-            },
-            "exit": {
-                "description": "Say goodbye to Cliqq (exit program)",
-                "function": exit_cliqq,
-                "args": None,
-            },
-            "log": {
-                "description": "See chat log",
-                "function": show_log,
-                "args": None,
-            },
-            "wipe": {
-                "description": "Empty log file",
-                "function": clear_log,
-                "args": None,
-            },
-            "clear": {
-                "description": "Clear the terminal window",
-                "function": clear,
-                "args": None,
-            },
-            "forget": {
-                "description": "Reset Cliqq's memory",
-                "function": clear_context,
-                "args": None,
-            },
-            "run": {
-                "description": "Run a command and have Cliqq analyze the output",
-                "function": run_command,
-                "args": "[command]",
-            },
-            "q": {
-                "description": "Non-interactive mode: send a single prompt and quickly get a response",
-                "function": quick_response,
-                "args": "[prompt]",
-            },
-            # TODO cliqq api [model_name] [base_url], and [api_key]
-            # maybe call find_api_info with these as optional args
-        }
+        self.commands: dict[str, Command] = {cmd.name: cmd for cmd in DEFAULT_COMMANDS}
 
-    @property
-    def commands(self) -> dict[str, CommandSpec]:
-        return self._commands
+    def get_command(self, command_name: str) -> Command | None:
+        return self.commands.get(command_name)
+
+    def add_command(self, key: str, command: Command) -> None:
+        self.commands[key] = command
 
     @property
     def parser(self) -> argparse.ArgumentParser:

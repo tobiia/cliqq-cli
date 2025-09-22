@@ -16,15 +16,15 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
 
     """ ex. cliqq q "how to make pasta", q = subcommand, "how to make pasta" = arg for sub
     commands are considered args, so below line adds an attr same as the one above
-    so can access command via args.command, which is an obj that can have its own args and such 
+    so can access command via args.command, which is an obj that can have its own args (add_argument) and such 
     """
     subparsers = parser.add_subparsers(dest="command")
 
-    for command, info in registry.commands.items():
-        subparser = subparsers.add_parser(command, help=info["description"])
+    for command_name, command in registry.commands.items():
+        subparser = subparsers.add_parser(command_name, help=command.description)
 
-        if info.get("args", None) is not None:
-            subparser.add_argument("arg", nargs=argparse.REMAINDER, help=info["args"])
+        if command.args:
+            subparser.add_argument("arg", nargs=argparse.REMAINDER, help=command.args)
             # NOTE parser_foo.set_defaults(func=foo) --> use if you can figure out a way to avoid passing session explicitly
 
     # ex. cliqq how to make pasta

@@ -2,21 +2,22 @@ import os
 import sys
 import logging
 import inspect
-from typing import Callable, NoReturn, Optional, TypedDict
+from typing import Callable, NoReturn, Optional, Any
+from dataclasses import dataclass
 
 from classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
 from ai import ai_response
 from main import program_output
+from action import run_command
 from log import logger
 
 
-# for typing...probably not necessary
-class CommandSpec(TypedDict):
+@dataclass(frozen=True)
+class Command:
+    name: str
     description: str
-    # Callable[[types of the args...], return type]
-    # below = any callable, any args, returning anything --> most general
-    function: Callable[..., object]
-    args: Optional[str]  # means None or whatever is written
+    function: Callable[..., Any]
+    args: Optional[str] = None
 
 
 def help(command_registry: CommandRegistry) -> None:
@@ -87,10 +88,11 @@ def dispatch(
     history: ChatHistory,
     registry: CommandRegistry,
     paths: PathManager,
-    args,
+    args,  # probably a namespace?
 ):
-    command_info = registry.commands[args.command]
-    func = command_info["function"]
+    command = registry.commands[args.command]
+
+    func = command.function
 
     sig = inspect.signature(func)
     kwargs = {}
@@ -104,9 +106,57 @@ def dispatch(
     if "paths" in sig.parameters:
         kwargs["paths"] = paths
 
-    if command_info.get("args", None) is not None:
+    if command.args:
         # functions that take positional args
         # currently all commands only take one, alter if future commands need more
         kwargs["args"] = args.arg
 
     func(**kwargs)
+
+
+DEFAULT_COMMANDS: list[Command] = [
+    # TODO cliqq api [model_name] [base_url], and [api_key]
+    # maybe call find_api_info with these as optional args
+    Command(
+        name="/help",
+        description="List Cliqq commands and what they do",
+        function=help,
+    ),
+    Command(
+        name="/exit",
+        description="Say goodbye to Cliqq (exit program)",
+        function=exit_cliqq,
+    ),
+    Command(
+        name="/log",
+        description="See chat log",
+        function=show_log,
+    ),
+    Command(
+        name="/wipe",
+        description="Empty log file",
+        function=clear_log,
+    ),
+    Command(
+        name="/clear",
+        description="Clear the terminal window",
+        function=clear,
+    ),
+    Command(
+        name="/forget",
+        description="Reset Cliqq's memory",
+        function=clear_context,
+    ),
+    Command(
+        name="/run",
+        description="Run a command and have Cliqq analyze the output",
+        function=run_command,
+        args="[command]",
+    ),
+    Command(
+        name="/q",
+        description="Non-interactive mode: send a single prompt and quickly get a response",
+        function=quick_response,
+        args="[prompt]",
+    ),
+]
