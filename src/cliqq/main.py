@@ -103,10 +103,15 @@ def handle_init_args(
     if args.command:
         if args.command == "/q":
             dispatch(api_config, history, command_registry, paths, args)
-            return None
-        program_output(intro)
-        program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-        dispatch(api_config, history, command_registry, paths, args)
+        elif args.command == "/invalid":
+            program_output(
+                "You have entered a command incorrectly. Type just '/help' to learn more.",
+                style_name="error",
+            )
+        else:
+            program_output(intro)
+            program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+            dispatch(api_config, history, command_registry, paths, args)
         return None
     elif args.prompt:
         program_output(intro)
@@ -138,7 +143,13 @@ def handle_input(
     args = parse_input(tokens, parser)
 
     if args.command:
-        dispatch(api_config, history, command_registry, paths, args)
+        if args.command == "/invalid":
+            program_output(
+                "You have entered a command incorrectly. Type just '/help' to learn more.",
+                style_name="error",
+            )
+        else:
+            dispatch(api_config, history, command_registry, paths, args)
         return ""
     else:
         # treat all args as an AI prompt

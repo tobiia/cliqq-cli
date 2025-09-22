@@ -46,8 +46,12 @@ def parse_input(
     try:
         return parser.parse_args(tokens)
     except SystemExit:
-        # occurs if argsv only has 1 word or if user starts prompt with "cliqq"
+        # occurs if argsv only has 1 word non-prompt or if user starts prompt with "cliqq"
+        # or if user enters a command with no prompts with a prompt
         # fallback: treat everything as a prompt
+        if tokens and tokens[0].startswith("/"):
+            # user tried a command but misused it
+            return argparse.Namespace(command="/invalid", prompt=tokens)
         return argparse.Namespace(command=None, prompt=tokens)
 
 
