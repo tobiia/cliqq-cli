@@ -43,6 +43,10 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
 def parse_input(
     tokens: list[str], parser: argparse.ArgumentParser
 ) -> argparse.Namespace:
+
+    # removing "cliqq" b/c argparse will interpret it as a command (prog)
+    if tokens[0] == "cliqq":
+        tokens = tokens[1:]
     try:
         return parser.parse_args(tokens)
     except SystemExit:

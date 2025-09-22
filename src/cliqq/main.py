@@ -2,6 +2,7 @@ import shlex
 import logging
 import sys
 import argparse
+import os
 from pathlib import Path
 
 from prompt_toolkit import prompt
@@ -94,9 +95,7 @@ def handle_init_args(
     paths: PathManager,
 ) -> str | None:
 
-    tokens = sys.argv[1:]
-    if tokens and tokens[0] == "cliqq":
-        tokens = tokens[1:]
+    tokens = sys.argv
 
     args = parse_input(tokens, parser)
 
@@ -135,10 +134,6 @@ def handle_input(
 ) -> str:
 
     tokens = shlex.split(input)
-
-    # removing cliqq b/c argparse will interpret it as a command (prog)
-    if tokens and tokens[0] == "cliqq":
-        tokens = tokens[1:]
 
     args = parse_input(tokens, parser)
 
@@ -245,6 +240,14 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+"""
+# Make CLI runnable from source tree with
+if not __package__:
+    # OYTHONPATH = "src/package"
+    package_source_path = os.path.dirname(os.path.dirname(__file__))
+    sys.path.insert(0, package_source_path)
+"""
 
 # NOTE further ideas:
 # implement file uploads

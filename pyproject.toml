@@ -6,10 +6,10 @@ build-backend = "hatchling.build"
 name = "cliqq"
 version = "0.0.1"
 dependencies = [
-  "openai==1.108.1",
-  "prompt_toolkit==3.0.52",
-  "psutil==7.1.0",
-  "python-dotenv==1.1.1",
+  "openai>=1.108.1",
+  "prompt_toolkit>=3.0.52",
+  "psutil>=7.1.0",
+  "python-dotenv>=1.1.1",
 ]
 authors = [{ name = "Tobi Adesanya", email = "tobijadesanya@gmail.com" }]
 description = "a simple command line chat assistant"
@@ -22,8 +22,7 @@ classifiers = [
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 
+keywords = ["cli", "chatbot", "openai", "assistant"]
+
 [project.urls]
 Homepage = "https://github.com/tobiia/cliqq-cli"
-
-[project.entry-points."spam.magical"]
-tomatoes = "spam:main_tomatoes"
