@@ -138,7 +138,6 @@ class PathManager:
         return self._env_path
 
     def create_paths(self):
-        # NOTE don't need to do this in every func b/c this func is always called
         self._home_path.mkdir(exist_ok=True)
 
         open(self._log_path, "a")

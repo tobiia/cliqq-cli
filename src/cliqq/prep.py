@@ -28,7 +28,6 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
 
         if command.args:
             subparser.add_argument("args", nargs="+", help=command.args)
-            # NOTE parser_foo.set_defaults(func=foo) --> use if you can figure out a way to avoid passing session explicitly
 
     # ex. cliqq how to make pasta
     # args = parser.parse_args(["cliqq", "how to make pasta"])

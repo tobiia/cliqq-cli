@@ -55,7 +55,7 @@ def user_input(log: bool = True) -> str:
 
 def program_choice(question: str, choices: list, log: bool = True) -> str:
     # for simple menus
-    message = FormattedText([("class:prompt", "(cliqq) "), ("class:action", question)])
+    message = FormattedText([("class:name", "(cliqq) "), ("class:action", question)])
     result = choice(
         message=message,
         options=choices,

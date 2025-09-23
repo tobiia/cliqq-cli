@@ -125,11 +125,10 @@ def write_file(path: Path, content: str, overwrite: bool = False):
 
 
 def resolve_conflict(path: Path, content: str) -> bool:
-    file_name = path.name
 
     choices = [("yes", "Yes"), ("no", "No")]
     user_choice = program_choice(
-        f"The file '{file_name}' already exists. Should I overwrite its content?",
+        f"The file '{path}' already exists. Should I overwrite its content?",
         choices,
     )
 
@@ -142,15 +141,17 @@ def resolve_conflict(path: Path, content: str) -> bool:
             "Okay, please provide a different name for the file.",
             style_name="action",
         )
-        # FIXME need to add file ext automatically
         new_name = user_input()
         new_path = path.parent / new_name
+        if new_path.is_dir():
+            ext = path.suffix
+            new_path = new_path / ext
         try:
             write_file(new_path, content, overwrite=False)
             return True
         except FileExistsError:
             program_output(
-                f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
+                f"The file '{new_path}' already exists too. This operation will be aborted.\nPlease request this file again!",
                 style_name="error",
             )
             return False
