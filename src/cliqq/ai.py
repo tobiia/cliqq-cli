@@ -27,8 +27,6 @@ def ai_response(
 
     try:
 
-        actionable = False
-
         history.remember({"role": "user", "content": user_prompt})
 
         # ensure api info is valid every time an api call is made
@@ -38,8 +36,9 @@ def ai_response(
                 f"I'm sorry, I cannot process your request! Please verify your API credentials and update your {env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
                 style_name="error",
             )
-            return actionable, None
+            return False, None
 
+        actionable = False
         response_content = {"text": "", "action": ""}
 
         # generator

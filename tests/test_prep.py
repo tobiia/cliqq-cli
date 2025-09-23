@@ -1,6 +1,5 @@
 import argparse
 import os
-import pathlib
 import shlex
 import types
 import sys
@@ -151,7 +150,8 @@ def test_prep_prompt(monkeypatch, template, expected):
     """Check load_template_local and prep_prompt with different templates."""
 
     # monkeypath = fixture that lets you replace attributes, functions, or variables in tests
-
+    # setattr -> replace an attribute on an object or module
+    # remember: methods are just attributes on classes
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setattr(os, "getcwd", lambda: "/fake/path")
     monkeypatch.setattr(
