@@ -114,6 +114,8 @@ class PathManager:
 
         self._env_path = Path(cfg.get("env", home / ".env")).expanduser()
 
+        self.create_paths()
+
     # func marked @property is the getter
     @property
     def script_path(self) -> Path:
@@ -140,5 +142,7 @@ class PathManager:
         self._home_path.mkdir(exist_ok=True)
 
         open(self._log_path, "a")
+
+        open(self._debug_path, "a")
 
         # .env not created unless user gives permission

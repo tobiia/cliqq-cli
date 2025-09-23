@@ -12,135 +12,144 @@ from log import logger
 def run(
     actionable: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
 ) -> bool:
-    try:
-        data = json.loads(actionable)
-    except json.JSONDecodeError as e:
-        logger.exception("Exception: %s", e)
+
+    data = parse_actionable(actionable)
+
+    if not data:
         program_output(
             "Something went wrong with my response and I can't parse it. Please ask me again!",
             style_name="error",
         )
         return False
-    except Exception as e:
-        logger.exception("Exception: %s", e)
-        program_output(f"Unexpected error: {e}", style_name="error")
-        return False
 
-    action = data.get("action")
-    if action == "command":
-        return run_command(data["command"], api_config, history, paths)
-    elif action == "file":
-        return save_file(data)
-    else:
-        program_output(
-            f"Failed to find action '{action}'. Please try again!",
-            style_name="error",
-        )
-        return False
+    action_type = data.get("action")
+    match action_type:
+        case "command":
+            return run_command(data["command"], api_config, history, paths.env_path)
+        case "file":
+            return save_file(data)
+        case _:
+            program_output(f"Invalid action: {data}", style_name="error")
+            return False
 
 
-def run_command(
-    command: str,
-    api_config: ApiConfig,
-    history: ChatHistory,
-    paths: PathManager,
-    ask: bool = True,
-) -> bool:
-    """
-    TODO: comments :(
-    """
+def parse_actionable(actionable: str) -> dict[str, str] | None:
+    """Parse actionable JSON safely. Return dict or None on failure."""
+    try:
+        return json.loads(actionable)
+    except json.JSONDecodeError as e:
+        logger.exception("Unable to parse actionable: %s", e)
+        return None
+
+
+def execute_command(command):
     try:
         cmd = shlex.split(command)
 
         output = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
-        if output.returncode != 0:
-            program_output(
-                f"Command {command} failed with exit code {output.returncode}:\n{output.stderr.strip()}\nPlease try again!",
-                style_name="error",
-            )
-            return False
+        return output.returncode, output.stdout.strip(), output.stderr.strip()
+    except FileNotFoundError:
+        return 127, "", f"Command not found: {command}"
 
-        program_output(output.stdout.strip(), style_name="action")
-        # send output to ai
-        if ask:
-            choices = [
-                ("yes", "Yes"),
-                ("no", "No"),
-            ]
-            user_choice = program_choice(
-                "Would you like for me to analyze this output?",
-                choices,
-            )
-            if user_choice == "yes":
-                ai_response(output.stdout.strip(), api_config, history, paths)
-        return True
 
-    except FileNotFoundError as e:
-        logger.exception("FileNotFoundError: %s", e)
+def offer_analyze_output(output, api_config, history, env_path) -> None:
+    choices = [
+        ("yes", "Yes"),
+        ("no", "No"),
+    ]
+    user_choice = program_choice(
+        "Would you like for me to analyze this output?",
+        choices,
+    )
+    if user_choice == "yes":
+        ai_response(output.stdout.strip(), api_config, history, env_path)
+
+
+def run_command(
+    args: str,
+    api_config: ApiConfig,
+    history: ChatHistory,
+    env_path: Path,
+    ask: bool = True,
+) -> bool:
+
+    # for clarity
+    command = args
+
+    code, stdout, stderr = execute_command(command)
+
+    if code != 0:
         program_output(
-            f"Failed to find command {command}\nPlease try again!",
+            f"Command {command} failed with exit code {code}:\n{stderr}\nPlease try again!",
             style_name="error",
         )
         return False
 
-    except Exception as e:
-        logger.exception("Exception: %s", e)
-        program_output(f"Unexpected error: {e}", style_name="error")
-        return False
+    program_output(stdout.strip(), style_name="action")
+
+    if ask:
+        offer_analyze_output(stdout, api_config, history, env_path)
+
+    return True
 
 
 def save_file(file: dict[str, str], overwrite: bool = False) -> bool:
     # file is in json format
     path = Path(file["path"]).expanduser()
     content = file["content"]
-    file_name = path.name
 
     # ensure the directory exists
     path.parent.mkdir(exist_ok=True)
 
     try:
-        with open(path, "x") as f:
-            f.write(content)
+        write_file(path, content, overwrite)
         return True
 
-    except FileExistsError as e:
-        if overwrite:
-            with open(path, "w") as f:
-                f.write(content)
-            return True
-        else:
-            choices = [("yes", "Yes"), ("no", "No")]
-            user_choice = program_choice(
-                f"The file '{file_name}' already exists. Should I overwrite its content?",
-                choices,
-            )
-
-            if user_choice == "yes":
-                with open(path, "w") as f:
-                    f.write(content)
-                return True
-            else:
-                # TODO return the file path just in case it changes
-                program_output(
-                    "Okay, please provide a different name for the file.",
-                    style_name="action",
-                )
-                new_name = user_input()
-                new_path = path.parent / new_name
-
-                try:
-                    with open(new_path, "x") as f:
-                        f.write(content)
-                    return True
-                except FileExistsError:
-                    program_output(
-                        f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
-                        style_name="error",
-                    )
-                    return False
-
-    except Exception as e:
-        logger.exception("Exception: %s", e)
-        program_output(f"Unexpected error: {e}", style_name="error")
+    except FileExistsError:
+        return resolve_conflict(path, content)
+    except IOError as e:
+        logger.exception(e)
         return False
+
+
+def write_file(path: Path, content: str, overwrite: bool = False):
+    if overwrite:
+        mode = "w"
+    else:
+        mode = "x"
+
+    with open(path, mode) as f:
+        f.write(content)
+
+
+def resolve_conflict(path: Path, content: str) -> bool:
+    file_name = path.name
+
+    choices = [("yes", "Yes"), ("no", "No")]
+    user_choice = program_choice(
+        f"The file '{file_name}' already exists. Should I overwrite its content?",
+        choices,
+    )
+
+    if user_choice == "yes":
+        write_file(path, content, overwrite=True)
+        return True
+    else:
+        # FIXME allow user to dscard file here
+        program_output(
+            "Okay, please provide a different name for the file.",
+            style_name="action",
+        )
+        # FIXME need to add file ext automatically
+        new_name = user_input()
+        new_path = path.parent / new_name
+        try:
+            write_file(new_path, content, overwrite=False)
+            return True
+        except FileExistsError:
+            program_output(
+                f"The file '{new_name}' already exists too. This operation will be aborted.\nPlease request this file again!",
+                style_name="error",
+            )
+            return False

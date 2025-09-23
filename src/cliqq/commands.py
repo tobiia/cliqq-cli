@@ -74,10 +74,10 @@ def clear_context(history: ChatHistory) -> None:
 
 
 def quick_response(
-    user_prompt: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
+    args, api_config: ApiConfig, history: ChatHistory, paths: PathManager
 ) -> None:
 
-    ai_response(user_prompt, api_config, history, paths)
+    ai_response(args, api_config, history, paths.env_path)
     exit_cliqq()
 
 

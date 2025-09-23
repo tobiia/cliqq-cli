@@ -39,7 +39,8 @@ def load_template(file_path: Path) -> str:
         return "You are a command line assistant running in a {OS} {SHELL} in {CWD}. {QUESTION}"
 
 
-def user_input(sensitive: bool = False) -> str:
+# FIXME changed from FAlse to True!
+def user_input(log: bool = True) -> str:
     message = FormattedText(
         [
             ("class:user", ">> "),
@@ -48,12 +49,12 @@ def user_input(sensitive: bool = False) -> str:
     input = prompt(
         message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
     )
-    if not sensitive:
+    if log:
         logger.info(f"{to_plain_text(message)}{input}\n")
     return input
 
 
-def program_choice(question: str, choices: list, sensitive: bool = False) -> str:
+def program_choice(question: str, choices: list, log: bool = True) -> str:
     # for simple menus
     message = FormattedText([("class:prompt", "(cliqq) "), ("class:action", question)])
     result = choice(
@@ -61,7 +62,7 @@ def program_choice(question: str, choices: list, sensitive: bool = False) -> str
         options=choices,
         style=DEFAULT_STYLE,
     )
-    if not sensitive:
+    if log:
         logger.info(f"{to_plain_text(message[0][1])}{question}\n")
         logger.info(f">> {result}\n")
     return result
@@ -71,7 +72,7 @@ def program_output(
     text: str,
     end: str = "\n",
     style_name: str = "program",
-    sensitive: bool = False,
+    log: bool = True,
 ):
     # action error program
     formatted_text = [
@@ -79,79 +80,13 @@ def program_output(
         (f"class:{style_name}", text),
     ]
 
-    logger = logging.getLogger("cliqq")
-    if not sensitive:
+    if log:
         if end:
             logger.info(f"{formatted_text[0][1]}{text}{end}")
         else:
             logger.info(formatted_text[0][1] + text)
 
     print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
-
-
-def handle_init_args(
-    intro: str,
-    parser: argparse.ArgumentParser,
-    api_config: ApiConfig,
-    history: ChatHistory,
-    command_registry: CommandRegistry,
-    paths: PathManager,
-) -> str | None:
-
-    tokens = sys.argv
-
-    parsed_input = parse_input(tokens, parser)
-
-    if parsed_input.command:
-        if parsed_input.command == "/q":
-            dispatch(api_config, history, command_registry, paths, parsed_input)
-        elif parsed_input.command == "/invalid":
-            program_output(
-                "You have entered a command incorrectly. Type just '/help' to learn more.",
-                style_name="error",
-            )
-        else:
-            program_output(intro)
-            program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-            dispatch(api_config, history, command_registry, paths, parsed_input)
-        return None
-    elif parsed_input.prompt:
-        program_output(intro)
-        program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-        return " ".join(parsed_input.prompt)
-    else:
-        program_output(intro)
-        program_output(
-            "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?"
-        )
-        return None
-
-
-def handle_input(
-    input: str,
-    parser: argparse.ArgumentParser,
-    api_config: ApiConfig,
-    history: ChatHistory,
-    command_registry: CommandRegistry,
-    paths: PathManager,
-) -> str:
-
-    tokens = shlex.split(input)
-
-    parsed_input = parse_input(tokens, parser)
-
-    if parsed_input.command:
-        if parsed_input.command == "/invalid":
-            program_output(
-                "You have entered a command incorrectly. Type just '/help' to learn more.",
-                style_name="error",
-            )
-        else:
-            dispatch(api_config, history, command_registry, paths, parsed_input)
-        return ""
-    else:
-        # treat all args as an AI prompt
-        return " ".join(parsed_input.prompt)
 
 
 def main() -> None:
@@ -175,7 +110,6 @@ def main() -> None:
     history = ChatHistory()
     command_registry = CommandRegistry()
     paths = PathManager()
-    paths.create_paths()
 
     user_prompt = None
     input = ""
@@ -191,9 +125,34 @@ def main() -> None:
     # store parser on session so help cmd can access it
     command_registry.parser = parser
 
-    init_arg = handle_init_args(
-        intro, parser, api_config, history, command_registry, paths
-    )
+    parsed_input = parse_input(sys.argv, parser)
+
+    if parsed_input.command:
+        if parsed_input.command == "/q":
+            dispatch(api_config, history, command_registry, paths, parsed_input)
+        elif parsed_input.command == "/invalid":
+            program_output(
+                "You have entered a command incorrectly. Type just '/help' to learn more.",
+                style_name="error",
+            )
+        else:
+            program_output(intro)
+            program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+            dispatch(api_config, history, command_registry, paths, parsed_input)
+
+        init_arg = None
+    elif parsed_input.prompt:
+        program_output(intro)
+        program_output("Hello! I am Cliqq, the command-line AI chatbot.")
+
+        init_arg = " ".join(parsed_input.prompt)
+    else:
+        program_output(intro)
+        program_output(
+            "Hello! I am Cliqq, the command-line AI chatbot.\nHow can I help you today?"
+        )
+
+        init_arg = None
 
     if init_arg:
         input = init_arg
@@ -203,21 +162,38 @@ def main() -> None:
     # interactive mode below
     while input not in ("exit", "/exit"):
 
-        input = handle_input(
-            input, parser, api_config, history, command_registry, paths
-        )
+        tokens = shlex.split(input)
+
+        parsed_input = parse_input(tokens, parser)
+
+        if parsed_input.command:
+            if parsed_input.command == "/invalid":
+                program_output(
+                    "You have entered a command incorrectly. Type just '/help' to learn more.",
+                    style_name="error",
+                )
+                input = ""
+            else:
+                dispatch(api_config, history, command_registry, paths, parsed_input)
+            input = ""
+        else:
+            # treat all words written by user as an AI prompt
+            input = " ".join(parsed_input.prompt)
 
         # most console output is handled within functions
 
         if input:
             user_prompt = prep_prompt(input, template)
 
-            response_content = ai_response(user_prompt, api_config, history, paths)
+            actionable, response_content = ai_response(
+                user_prompt, api_config, history, paths.env_path
+            )
 
             if response_content:
-                if response_content["actionable"]:
-                    actionable = response_content["content"]
-                    if run(actionable, api_config, history, paths):  # type: ignore
+
+                if actionable:
+                    action = response_content["action"]
+                    if run(action, api_config, history, paths):  # type: ignore
                         program_output(
                             "And your request has been completed! Do you have another question?"
                         )
