@@ -22,7 +22,7 @@ def test_dispatch_with_args():
     # cli input
     user_input = argparse.Namespace(command="/test", args=["argument"], prompt=[])
 
-    commands.dispatch(api_config, Mock(), registry, Mock(), user_input)
+    commands.dispatch(user_input, api_config, Mock(), registry, Mock())
 
     # Assert func was called once with the right kwargs
     func.assert_called_once_with(

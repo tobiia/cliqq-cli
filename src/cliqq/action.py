@@ -3,10 +3,10 @@ from pathlib import Path
 import subprocess
 import shlex
 
-from main import user_input, program_output, program_choice
-from classes import ApiConfig, ChatHistory, PathManager
-from ai import ai_response
-from log import logger
+from cliqq.main import user_input, program_output, program_choice
+from cliqq.classes import ApiConfig, ChatHistory, PathManager
+from cliqq.ai import ai_response
+from cliqq.log import logger
 
 
 def run(
@@ -23,14 +23,13 @@ def run(
         return False
 
     action_type = data.get("action")
-    match action_type:
-        case "command":
-            return run_command(data["command"], paths.env_path, api_config, history)
-        case "file":
-            return save_file(data)
-        case _:
-            program_output(f"Invalid action: {data}", style_name="error")
-            return False
+    if action_type == "command":
+        return run_command(data["command"], paths.env_path, api_config, history)
+    elif action_type == "file":
+        return save_file(data)
+    else:
+        program_output(f"Invalid action: {data}", style_name="error")
+        return False
 
 
 def parse_actionable(actionable: str) -> dict[str, str] | None:
@@ -103,7 +102,7 @@ def save_file(file: dict[str, str], overwrite: bool = False) -> bool:
     content = file["content"]
 
     # ensure the directory exists
-    path.parent.mkdir(exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
         write_file(path, content, overwrite)
@@ -122,7 +121,7 @@ def write_file(path: Path, content: str, overwrite: bool = False):
     else:
         mode = "x"
 
-    with open(path, mode) as f:
+    with open(path, mode, encoding="utf-8") as f:
         f.write(content)
 
 
@@ -145,9 +144,13 @@ def resolve_conflict(path: Path, content: str) -> bool:
         )
         new_name = user_input()
         new_path = path.parent / new_name
+        # user gave a directory
         if new_path.is_dir():
-            ext = path.suffix
-            new_path = new_path / ext
+            new_path = new_path / path.name
+        # name with no extension
+        elif not new_path.suffix and path.suffix:
+            new_path = new_path.with_suffix(path.suffix)
+
         try:
             write_file(new_path, content, overwrite=False)
             return True

@@ -1,23 +1,20 @@
 import shlex
-import logging
 import sys
-import argparse
-import os
 from pathlib import Path
 
 from prompt_toolkit import prompt
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText, to_plain_text
-from styles import DEFAULT_STYLE
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit import choice
+from prompt_toolkit.shortcuts import choice
 
-from classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
-from prep import prep_prompt, parse_commands, parse_input
-from commands import dispatch, exit_cliqq
-from ai import ai_response
-from action import run
-from log import logger
+from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
+from cliqq.prep import prep_prompt, parse_commands, parse_input
+from cliqq.commands import dispatch, exit_cliqq
+from cliqq.ai import ai_response
+from cliqq.action import run
+from cliqq.log import logger
+from cliqq.styles import DEFAULT_STYLE
 
 
 # NOTE: for when this is a pip-installable package
@@ -32,7 +29,7 @@ from log import logger
 # NOTE: for while i'm testing
 def load_template(file_path: Path) -> str:
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError as e:
         logger.exception("FileNotFoundError: %s", e)
@@ -216,11 +213,20 @@ def main() -> None:
     exit_cliqq()
 
 
-# FIXME catch any exceptions and probably just restart the loop
+def safe_main():
+    try:
+        main()
+    except Exception as e:
+        logger.exception("Fatal error in Cliqq startup or main loop: %s", e)
+        program_output(
+            "Cliqq encountered a fatal error and needs to exit.\nPlease check the logs for details.",
+            style_name="error",
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    safe_main()
 
 """
 # Make CLI runnable from source tree with

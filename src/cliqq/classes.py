@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
-from commands import Command, DEFAULT_COMMANDS
+from cliqq.commands import Command, DEFAULT_COMMANDS
 
 # should maybe use dependency injection (FastAPI) or contextvars (Flask)...
 
@@ -93,24 +93,24 @@ class CommandRegistry:
 
 class PathManager:
     def __init__(self):
-        config_path = Path("~/.cliqq/config.json")
+        config_path = Path("~/.cliqq/config.json").expanduser()
         if config_path.exists():
-            with open(config_path) as f:
-                cfg = json.load(f)
+            with open(config_path, encoding="utf-8") as f:
+                config = json.load(f)
         else:
-            cfg = {}
+            config = {}
 
         self._script_path = Path(__file__).parent
 
-        home = Path(cfg.get("home", "~/.cliqq")).expanduser()
+        home = Path(config.get("home", "~/.cliqq")).expanduser()
         self._home_path = home
 
         # Path contruct again just in case, probs not necessary
-        self._debug_path = Path(cfg.get("debug", home / "debug.log")).expanduser()
+        self._debug_path = Path(config.get("debug", home / "debug.log")).expanduser()
 
-        self._log_path = Path(cfg.get("log", home / "cliqq.log")).expanduser()
+        self._log_path = Path(config.get("log", home / "cliqq.log")).expanduser()
 
-        self._env_path = Path(cfg.get("env", home / ".env")).expanduser()
+        self._env_path = Path(config.get("env", home / ".env")).expanduser()
 
         self.create_paths()
 
@@ -136,10 +136,12 @@ class PathManager:
         return self._env_path
 
     def create_paths(self):
-        self._home_path.mkdir(exist_ok=True)
+        self._home_path.mkdir(parents=True, exist_ok=True)
 
-        open(self._log_path, "a")
+        with open(self._log_path, "a"):
+            pass
 
-        open(self._debug_path, "a")
+        with open(self._debug_path, "a"):
+            pass
 
         # .env not created unless user gives permission

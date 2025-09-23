@@ -119,11 +119,10 @@ def test_parse_commands():
 
     # check help text
     assert (
-        subcommands["/noargs"].description
-        == command_registry.commands["/noargs"].description
+        subcommands["/noargs"].help == command_registry.commands["/noargs"].description
     )
     assert (
-        subcommands["/withargs"].description
+        subcommands["/withargs"].help
         == command_registry.commands["/withargs"].description
     )
 
@@ -132,12 +131,12 @@ def test_parse_commands():
     "template,expected",
     [
         ("hello template", "hello template"),
-        ("OS={OS}", "OS=win32"),
+        ("OS=<OS>", "OS=win32"),
         (
-            "You are in {SHELL} at {CWD}",
+            "You are in <SHELL> at <CWD>",
             "You are in bash at /fake/path",
         ),
-        ("question: {QUESTION}", "question: hello"),
+        ("question: <QUESTION>", "question: hello"),
     ],
 )
 def test_prep_prompt(monkeypatch, template, expected):

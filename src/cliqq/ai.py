@@ -5,10 +5,10 @@ from dotenv import dotenv_values
 from typing import Iterable, Literal, TypedDict
 import openai
 
-from main import program_output, user_input, program_choice
-from classes import ApiConfig, ChatHistory
-from action import save_file
-from log import logger
+from cliqq.main import program_output, user_input, program_choice
+from cliqq.classes import ApiConfig, ChatHistory
+from cliqq.action import save_file
+from cliqq.log import logger
 
 API_ERROR_MESSAGES = {
     openai.AuthenticationError: "API information validation failed: invalid API key",

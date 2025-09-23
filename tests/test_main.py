@@ -1,10 +1,3 @@
-import argparse
-import pathlib
-import shlex
-import types
-import sys
-import pytest
-
 from cliqq import main
 
 

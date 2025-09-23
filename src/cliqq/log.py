@@ -23,7 +23,7 @@ class BufferingFileHandler(logging.Handler):
             return
         os.makedirs(os.path.dirname(self._filename), exist_ok=True)
         log_text = "".join(self._buffer)
-        with open(self._filename, "a") as f:
+        with open(self._filename, "a", encoding="utf-8") as f:
             f.write(log_text)
         self._buffer.clear()
 

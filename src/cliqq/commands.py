@@ -6,11 +6,11 @@ import inspect
 from typing import Callable, NoReturn, Optional, Any
 from dataclasses import dataclass
 
-from classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
-from ai import ai_response
-from main import program_output
-from action import run_command
-from log import logger
+from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
+from cliqq.ai import ai_response
+from cliqq.main import program_output
+from cliqq.action import run_command
+from cliqq.log import logger
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ def show_log(paths: PathManager) -> None:
     try:
         for handler in logger.handlers:
             handler.flush()
-        with open(paths.log_path) as f:
+        with open(paths.log_path, encoding="utf-8") as f:
             log = f.read()
             # TODO a better way to display log, especially if it's large
             program_output(log, style_name="action")
@@ -47,7 +47,7 @@ def show_log(paths: PathManager) -> None:
     except FileNotFoundError:
         program_output("The log is empty!", style_name="error")
         # create log if it doesn't exist, probably redundant but check
-        f = open(paths.log_path, "a")
+        f = open(paths.log_path, "a", encoding="utf-8")
         f.close()
     except IOError as e:
         program_output(f"Error reading log file: {e}", style_name="error")
@@ -56,7 +56,7 @@ def show_log(paths: PathManager) -> None:
 
 def clear_log(paths: PathManager) -> None:
     try:
-        with open(paths.log_path, "w") as f:
+        with open(paths.log_path, "w", encoding="utf-8") as f:
             f.write("")
         program_output("Chat log cleared, let's start fresh!", style_name="action")
     except IOError as e:

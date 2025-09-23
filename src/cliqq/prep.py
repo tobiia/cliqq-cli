@@ -5,7 +5,7 @@ import psutil
 import argparse
 from pathlib import Path
 
-from classes import CommandRegistry
+from cliqq.classes import CommandRegistry
 
 
 # usage
@@ -48,7 +48,7 @@ def parse_input(
 ) -> argparse.Namespace:
 
     # removing "cliqq" b/c argparse will interpret it as a command (prog)
-    if tokens[0] == "cliqq":
+    if len(tokens) > 0 and tokens[0] == "cliqq":
         tokens = tokens[1:]
     try:
         ns = parser.parse_args(tokens)
@@ -74,10 +74,10 @@ def prep_prompt(prompt: str, template: str) -> str:
     # this is potentially sensitive info
     safe_cwd = cwd.replace(str(Path.home()), "~")
 
-    prompt_template = re.sub(r"{OS}", op_sys, template)
-    prompt_template = re.sub(r"{SHELL}", shell, prompt_template)
-    prompt_template = re.sub(r"{CWD}", safe_cwd, prompt_template)
-    prompt_template = re.sub(r"{QUESTION}", prompt, prompt_template)
+    prompt_template = re.sub(r"<OS>", op_sys, template)
+    prompt_template = re.sub(r"<SHELL>", shell, prompt_template)
+    prompt_template = re.sub(r"<CWD>", safe_cwd, prompt_template)
+    prompt_template = re.sub(r"<QUESTION>", prompt, prompt_template)
     return prompt_template
 
 

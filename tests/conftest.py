@@ -7,8 +7,6 @@ import os
 # pytest test_action.py
 # -v = verbose
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 
 @pytest.fixture(autouse=True)
 def disable_program_output(monkeypatch):
@@ -16,11 +14,17 @@ def disable_program_output(monkeypatch):
     def dummy_program_output(*args, **kwargs):
         return None
 
-    monkeypatch.setattr("ai.program_output", dummy_program_output)
-    monkeypatch.setattr("action.program_output", dummy_program_output)
-    monkeypatch.setattr("commands.program_output", dummy_program_output)
-    monkeypatch.setattr("main.program_output", dummy_program_output)
-    monkeypatch.setattr("prep.program_output", dummy_program_output)
+    # raising=False means they won't raise error if file doesn't import this
+    monkeypatch.setattr("cliqq.ai.program_output", dummy_program_output, raising=False)
+    monkeypatch.setattr(
+        "cliqq.action.program_output", dummy_program_output, raising=False
+    )
+    monkeypatch.setattr(
+        "cliqq.commands.program_output", dummy_program_output, raising=False
+    )
+    monkeypatch.setattr(
+        "cliqq.main.program_output", dummy_program_output, raising=False
+    )
 
     return dummy_program_output
 
@@ -33,7 +37,7 @@ def disable_file_logging(monkeypatch):
     dummy_logger.addHandler(logging.NullHandler())
 
     # Patch both setup_logging() and global logger
-    monkeypatch.setattr("log.setup_logging", lambda: dummy_logger)
-    monkeypatch.setattr("log.logger", dummy_logger)
+    monkeypatch.setattr("cliqq.log.setup_logging", lambda: dummy_logger)
+    monkeypatch.setattr("cliqq.log.logger", dummy_logger)
 
     return dummy_logger
