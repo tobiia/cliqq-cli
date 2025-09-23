@@ -23,15 +23,19 @@ def test_buffer_deltas_basic(test_input, expected):
 
 
 @pytest.mark.parametrize(
-    "text,expected",
+    "test_input,expected",
     [
         ('hello \x1e{ "do":1 }\x1f bye', '{ "do":1 }'),
         ("no markers here", None),
         ("i'm missing one of the delimitors \x1e{'do':1}", None),
     ],
 )
-def test_extract_action(text, expected):
-    assert ai.extract_action(text) == expected
+def test_extract_action(test_input, expected):
+    result = ai.extract_action(test_input)
+    if expected is None:
+        assert result is None
+    else:
+        assert result == expected
 
 
 def test_load_env_file(tmp_path):
@@ -69,7 +73,6 @@ def test_validate_api_fail(monkeypatch):
         raise FakeAuthError
 
     monkeypatch.setattr(ai, "ping_api", bad_ping)
-    monkeypatch.setattr(ai, "logger", ai.logger)  # avoid None logger
 
     valid = ai.validate_api(
         {"model_name": "m", "base_url": "b", "api_key": "k"}, Path("dummy")
@@ -89,7 +92,6 @@ def test_ensure_api_fail(monkeypatch):
 
     monkeypatch.setattr(ai, "find_api_info", fail_find)
     monkeypatch.setattr(ai, "program_output", lambda *a, **k: None)
-    monkeypatch.setattr(ai, "logger", ai.logger)  # avoid None logger
 
     result = ai.ensure_api(api_config, env_path)
     assert result is False

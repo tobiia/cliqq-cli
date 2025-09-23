@@ -42,7 +42,7 @@ def parse_actionable(actionable: str) -> dict[str, str] | None:
         return None
 
 
-def execute_command(command):
+def execute_command(command) -> tuple[int, str, str]:
     try:
         cmd = shlex.split(command)
 
@@ -66,6 +66,7 @@ def offer_analyze_output(output, api_config, history, env_path) -> None:
         ai_response(output.stdout.strip(), api_config, history, env_path)
 
 
+# args = command as a str, just called args so commands.dispatch works
 def run_command(
     args: str,
     api_config: ApiConfig,

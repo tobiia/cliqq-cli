@@ -68,8 +68,17 @@ def test_parse_input(user_input, expected_command, expected_arg, expected_prompt
     parsed_input = prep.parse_input(tokens, parser)
 
     assert parser.prog == "cliqq"
-    assert parsed_input.command == expected_command
-    assert parsed_input.prompt == expected_prompt
+    # can return false negative if any are None
+
+    if expected_command is None:
+        assert parsed_input.command is None
+    else:
+        assert parsed_input.command == expected_command
+
+    if expected_prompt is None:
+        assert parsed_input.prompt is None
+    else:
+        assert parsed_input.prompt == expected_prompt
 
     # only check .args if it exists
     if hasattr(parsed_input, "args"):
