@@ -10,7 +10,7 @@ from classes import CommandRegistry
 
 # usage
 # args = parser.parse_args([list of each argument given]) = obj with properties that correspond to args given
-# note: you always have .prompt, command and args are optional
+# note: this is written where you always have .prompt and .command, args iff needed
 def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="cliqq", description="A simple, lightweight command line chat assistant"
@@ -43,6 +43,7 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     return parser
 
 
+# namespace returned ALWAYS has .command, .prompt. and .args
 def parse_input(
     tokens: list[str], parser: argparse.ArgumentParser
 ) -> argparse.Namespace:
@@ -51,15 +52,20 @@ def parse_input(
     if tokens[0] == "cliqq":
         tokens = tokens[1:]
     try:
-        return parser.parse_args(tokens)
+        ns = parser.parse_args(tokens)
     except SystemExit:
         # occurs if argsv only has 1 word non-prompt or if user starts prompt with "cliqq"
         # or if user enters a command with no args with an argument
         # fallback: treat everything as a prompt
         if tokens and tokens[0].startswith("/"):
             # user tried a command but misused it
-            return argparse.Namespace(command="/invalid", args=tokens, prompt=[])
-        return argparse.Namespace(command=None, prompt=tokens)
+            ns = argparse.Namespace(command="/invalid", args=tokens, prompt=[])
+        else:
+            ns = argparse.Namespace(command=None, prompt=tokens)
+    # ensure .args always exists
+    if not hasattr(ns, "args"):
+        ns.args = []
+    return ns
 
 
 def prep_prompt(prompt: str, template: str) -> str:

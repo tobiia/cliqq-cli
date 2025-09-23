@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import logging
@@ -85,7 +86,7 @@ def dispatch(
     history: ChatHistory,
     registry: CommandRegistry,
     paths: PathManager,
-    user_input,  # probably a namespace?
+    user_input: argparse.Namespace,  # namespace
 ):
     command = registry.commands[user_input.command]
 
