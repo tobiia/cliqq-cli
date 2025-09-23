@@ -5,7 +5,7 @@ import types
 import sys
 import pytest
 
-from cliqq import main, prep, classes
+from cliqq import prep, classes
 
 
 @pytest.mark.parametrize(

@@ -67,7 +67,6 @@ def program_choice(question: str, choices: list, log: bool = True) -> str:
     return result
 
 
-# FIXME patch program output like logger in tests
 def program_output(
     text: str,
     end: str = "\n",
@@ -215,6 +214,9 @@ def main() -> None:
         input = user_input().strip()
 
     exit_cliqq()
+
+
+# FIXME catch any exceptions and probably just restart the loop
 
 
 if __name__ == "__main__":
