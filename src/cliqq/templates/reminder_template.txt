@@ -21,7 +21,7 @@ If providiing a file, like write the file like this:
 \x1e
 {
     "action": "file",
-    "path": [file path and name],
+    "path": [file path],
     "content": [contents of the file]
 }
 \x1f
