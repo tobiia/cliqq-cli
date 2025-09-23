@@ -3,8 +3,7 @@ import os
 import sys
 import logging
 import inspect
-from typing import Callable, NoReturn, Optional, Any, TYPE_CHECKING
-from dataclasses import dataclass
+from typing import NoReturn, TYPE_CHECKING
 
 from cliqq.log import logger
 from cliqq.io import program_output
@@ -12,15 +11,6 @@ from cliqq.io import program_output
 if TYPE_CHECKING:
     from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
     from cliqq.ai import ai_response
-    from cliqq.action import run_command
-
-
-@dataclass(frozen=True)
-class Command:
-    name: str
-    description: str
-    function: Callable[..., Any]
-    args: Optional[str] = None
 
 
 def help(command_registry: CommandRegistry) -> None:
@@ -112,51 +102,3 @@ def dispatch(
         kwargs["args"] = user_input.args
 
     func(**kwargs)
-
-
-DEFAULT_COMMANDS: list[Command] = [
-    # TODO cliqq api [model_name] [base_url], and [api_key]
-    # maybe call find_api_info with these as optional args
-    Command(
-        name="/help",
-        description="List Cliqq commands and what they do",
-        function=help,
-    ),
-    Command(
-        name="/exit",
-        description="Say goodbye to Cliqq (exit program)",
-        function=exit_cliqq,
-    ),
-    Command(
-        name="/log",
-        description="See chat log",
-        function=show_log,
-    ),
-    Command(
-        name="/wipe",
-        description="Empty log file",
-        function=clear_log,
-    ),
-    Command(
-        name="/clear",
-        description="Clear the terminal window",
-        function=clear,
-    ),
-    Command(
-        name="/forget",
-        description="Reset Cliqq's memory",
-        function=clear_context,
-    ),
-    Command(
-        name="/run",
-        description="Run a command and have Cliqq analyze the output",
-        function=run_command,
-        args="[command]",
-    ),
-    Command(
-        name="/q",
-        description="Non-interactive mode: send a single prompt and quickly get a response",
-        function=quick_response,
-        args="[prompt]",
-    ),
-]
