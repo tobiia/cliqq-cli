@@ -20,9 +20,9 @@ API_ERROR_MESSAGES = {
 
 def ai_response(
     user_prompt: str,
+    env_path: Path,
     api_config: ApiConfig,
     history: ChatHistory,
-    env_path: Path,
 ) -> tuple[bool, dict[str, str]] | tuple[bool, None]:
 
     try:
@@ -30,7 +30,7 @@ def ai_response(
         history.remember({"role": "user", "content": user_prompt})
 
         # ensure api info is valid every time an api call is made
-        if not ensure_api(api_config, env_path):
+        if not ensure_api(env_path, api_config):
             # false if program couldn't get valid api info
             program_output(
                 f"I'm sorry, I cannot process your request! Please verify your API credentials and update your {env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
@@ -169,7 +169,7 @@ def prompt_api_info() -> dict[str, str]:
     return config
 
 
-def validate_api(config, env_path) -> bool:
+def validate_api(config: dict[str, str], env_path: Path) -> bool:
     try:
         if ping_api(config):
             offer_save_env(config, env_path)
@@ -229,7 +229,7 @@ def find_api_info(env_path: Path) -> dict[str, str]:
     raise ValueError()
 
 
-def load_env_file(env_path):
+def load_env_file(env_path: Path):
     if env_path.exists():
         env_dict = dotenv_values(env_path)
         model_name = env_dict.get("MODEL_NAME")
@@ -259,7 +259,7 @@ def load_sys_env():
     return None
 
 
-def ensure_api(api_config: ApiConfig, env_path: Path) -> bool:
+def ensure_api(env_path: Path, api_config: ApiConfig) -> bool:
     # ensures api info is set
     if api_config.model_name and api_config.base_url and api_config.api_key:
         # don't validate again b/c if these have been set, the user must've made a valid call before

@@ -1,9 +1,7 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Callable
 
-from action import run_command
 from commands import Command, DEFAULT_COMMANDS
 
 # should maybe use dependency injection (FastAPI) or contextvars (Flask)...

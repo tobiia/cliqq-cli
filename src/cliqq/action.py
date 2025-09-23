@@ -25,7 +25,7 @@ def run(
     action_type = data.get("action")
     match action_type:
         case "command":
-            return run_command(data["command"], api_config, history, paths.env_path)
+            return run_command(data["command"], paths.env_path, api_config, history)
         case "file":
             return save_file(data)
         case _:
@@ -42,7 +42,7 @@ def parse_actionable(actionable: str) -> dict[str, str] | None:
         return None
 
 
-def execute_command(command) -> tuple[int, str, str]:
+def execute_command(command: str) -> tuple[int, str, str]:
     try:
         cmd = shlex.split(command)
 
@@ -53,7 +53,9 @@ def execute_command(command) -> tuple[int, str, str]:
         return 127, "", f"Command not found: {command}"
 
 
-def offer_analyze_output(output, api_config, history, env_path) -> None:
+def offer_analyze_output(
+    output, env_path: Path, api_config: ApiConfig, history: ChatHistory
+) -> None:
     choices = [
         ("yes", "Yes"),
         ("no", "No"),
@@ -63,15 +65,15 @@ def offer_analyze_output(output, api_config, history, env_path) -> None:
         choices,
     )
     if user_choice == "yes":
-        ai_response(output.stdout.strip(), api_config, history, env_path)
+        ai_response(output.stdout.strip(), env_path, api_config, history)
 
 
 # args = command as a str, just called args so commands.dispatch works
 def run_command(
     args: str,
+    env_path: Path,
     api_config: ApiConfig,
     history: ChatHistory,
-    env_path: Path,
     ask: bool = True,
 ) -> bool:
 
@@ -90,7 +92,7 @@ def run_command(
     program_output(stdout.strip(), style_name="action")
 
     if ask:
-        offer_analyze_output(stdout, api_config, history, env_path)
+        offer_analyze_output(stdout, env_path, api_config, history)
 
     return True
 

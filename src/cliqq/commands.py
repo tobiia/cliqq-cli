@@ -77,16 +77,16 @@ def quick_response(
     args, api_config: ApiConfig, history: ChatHistory, paths: PathManager
 ) -> None:
 
-    ai_response(args, api_config, history, paths.env_path)
+    ai_response(args, paths.env_path, api_config, history)
     exit_cliqq()
 
 
 def dispatch(
+    user_input: argparse.Namespace,  # namespace
     api_config: ApiConfig,
     history: ChatHistory,
     registry: CommandRegistry,
     paths: PathManager,
-    user_input: argparse.Namespace,  # namespace
 ):
     command = registry.commands[user_input.command]
 

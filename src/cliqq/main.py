@@ -128,7 +128,7 @@ def main() -> None:
 
     if parsed_input.command:
         if parsed_input.command == "/q":
-            dispatch(api_config, history, command_registry, paths, parsed_input)
+            dispatch(parsed_input, api_config, history, command_registry, paths)
         elif parsed_input.command == "/invalid":
             program_output(
                 "You have entered a command incorrectly. Type just '/help' to learn more.",
@@ -137,7 +137,7 @@ def main() -> None:
         else:
             program_output(intro)
             program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-            dispatch(api_config, history, command_registry, paths, parsed_input)
+            dispatch(parsed_input, api_config, history, command_registry, paths)
 
         init_arg = None
     elif parsed_input.prompt:
@@ -173,7 +173,7 @@ def main() -> None:
                 )
                 input = ""
             else:
-                dispatch(api_config, history, command_registry, paths, parsed_input)
+                dispatch(parsed_input, api_config, history, command_registry, paths)
             input = ""
         else:
             # treat all words written by user as an AI prompt
@@ -185,7 +185,7 @@ def main() -> None:
             user_prompt = prep_prompt(input, template)
 
             actionable, response_content = ai_response(
-                user_prompt, api_config, history, paths.env_path
+                user_prompt, paths.env_path, api_config, history
             )
 
             if response_content:
