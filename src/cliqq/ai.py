@@ -2,7 +2,7 @@ import os
 import re
 from pathlib import Path
 from dotenv import dotenv_values
-from typing import Iterable, Literal, TypedDict
+from typing import Iterable
 import openai
 
 from cliqq.main import program_output, user_input, program_choice

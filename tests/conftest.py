@@ -1,7 +1,5 @@
 import logging
 import pytest
-import sys
-import os
 
 # pytest
 # pytest test_action.py
