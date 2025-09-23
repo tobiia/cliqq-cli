@@ -2,6 +2,7 @@ from prompt_toolkit import prompt
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText, to_plain_text
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.shortcuts import choice
 
 from cliqq.styles import DEFAULT_STYLE
 from cliqq.log import logger

@@ -3,14 +3,16 @@ import os
 import sys
 import logging
 import inspect
-from typing import Callable, NoReturn, Optional, Any
+from typing import Callable, NoReturn, Optional, Any, TYPE_CHECKING
 from dataclasses import dataclass
 
-from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
-from cliqq.ai import ai_response
-from cliqq.main import program_output
-from cliqq.action import run_command
 from cliqq.log import logger
+from cliqq.io import program_output
+
+if TYPE_CHECKING:
+    from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
+    from cliqq.ai import ai_response
+    from cliqq.action import run_command
 
 
 @dataclass(frozen=True)

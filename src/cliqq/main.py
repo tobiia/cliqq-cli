@@ -1,20 +1,25 @@
+# cd cliqq-cli
+# pip install -e .
+# don't forget the . !!
+
+# cd src
+# python -m cliqq.main
+# for local
+
 import shlex
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from prompt_toolkit import prompt
-from prompt_toolkit import print_formatted_text
-from prompt_toolkit.formatted_text import FormattedText, to_plain_text
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.shortcuts import choice
-
-from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
 from cliqq.prep import prep_prompt, parse_commands, parse_input
 from cliqq.commands import dispatch, exit_cliqq
 from cliqq.ai import ai_response
 from cliqq.action import run
 from cliqq.log import logger
-from cliqq.styles import DEFAULT_STYLE
+from cliqq.io import program_output, user_input
+
+if TYPE_CHECKING:
+    from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
 
 
 # NOTE: for when this is a pip-installable package
@@ -34,55 +39,6 @@ def load_template(file_path: Path) -> str:
     except FileNotFoundError as e:
         logger.exception("FileNotFoundError: %s", e)
         return "You are a command line assistant running in a {OS} {SHELL} in {CWD}. {QUESTION}"
-
-
-def user_input(log: bool = True) -> str:
-    message = FormattedText(
-        [
-            ("class:user", ">> "),
-        ]
-    )
-    input = prompt(
-        message=message, style=DEFAULT_STYLE, auto_suggest=AutoSuggestFromHistory()
-    )
-    if log:
-        logger.info(f"{to_plain_text(message)}{input}\n")
-    return input
-
-
-def program_choice(question: str, choices: list, log: bool = True) -> str:
-    # for simple menus
-    message = FormattedText([("class:name", "(cliqq) "), ("class:action", question)])
-    result = choice(
-        message=message,
-        options=choices,
-        style=DEFAULT_STYLE,
-    )
-    if log:
-        logger.info(f"{to_plain_text(message[0][1])}{question}\n")
-        logger.info(f">> {result}\n")
-    return result
-
-
-def program_output(
-    text: str,
-    end: str = "\n",
-    style_name: str = "program",
-    log: bool = True,
-):
-    # action error program
-    formatted_text = [
-        ("class:name", "(cliqq) "),
-        (f"class:{style_name}", text),
-    ]
-
-    if log:
-        if end:
-            logger.info(f"{formatted_text[0][1]}{text}{end}")
-        else:
-            logger.info(formatted_text[0][1] + text)
-
-    print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
 
 
 def main() -> None:

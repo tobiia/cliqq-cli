@@ -4,8 +4,10 @@ import re
 import psutil
 import argparse
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from cliqq.classes import CommandRegistry
+if TYPE_CHECKING:
+    from cliqq.classes import CommandRegistry
 
 
 # usage
