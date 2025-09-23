@@ -193,6 +193,7 @@ def main() -> None:
 
                 if actionable:
                     action = response_content["action"]
+                    # FIXME ask user if they want to run or not
                     if run(action, api_config, history, paths):  # type: ignore
                         program_output(
                             "And your request has been completed! Do you have another question?"

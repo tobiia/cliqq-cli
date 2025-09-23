@@ -9,19 +9,19 @@ QUESTION:
 
 If providing a shell command, write the command like this:
 
-<JSON_START>
+\x1e
 {
     "action": "command",
     "command": [the executable command],
 }
-<JSON_END>
+\x1f
 
 If providiing a file, like write the file like this:
 
-<JSON_START>
+\x1e
 {
     "action": "file",
     "path": [file path and name],
     "content": [contents of the file]
 }
-<JSON_END>
+\x1f

@@ -49,19 +49,18 @@ def show_log(paths: PathManager) -> None:
         f = open(paths.log_path, "a")
         f.close()
     except IOError as e:
-        logger.exception("IOError: %s", e)
         program_output(f"Error reading log file: {e}", style_name="error")
+        raise IOError(f"IOError, error reading log file: {e}")
 
 
-# TODO go through return None funcs to see if they should return something...
 def clear_log(paths: PathManager) -> None:
     try:
         with open(paths.log_path, "w") as f:
             f.write("")
         program_output("Chat log cleared, let's start fresh!", style_name="action")
     except IOError as e:
-        logger.exception("IOError: %s", e)
         program_output(f"Error clearing log file: {e}", style_name="error")
+        raise IOError(f"IOError, error reading log file: {e}")
 
 
 def clear_context(history: ChatHistory) -> None:

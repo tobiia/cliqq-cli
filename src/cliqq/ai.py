@@ -43,6 +43,7 @@ def ai_response(
         response_content = {"text": "", "action": ""}
 
         # generator
+        # tool_calls and function_call to separate some content like action?
         deltas = stream_chunks(
             api_config.model_name,
             api_config.base_url,
@@ -50,17 +51,28 @@ def ai_response(
             history.chat_history,
         )
 
-        # also generator
-        for type, text in parse_deltas(deltas):
-            if type == "text":
-                program_output(text, end="")
-            elif type == "action":
-                program_output(text, end="", style_name="action")
-                actionable = True
-                response_content["action"] = text
-            response_content["text"] += text
+        raw_accum = []
 
-        history.remember({"role": "assistant", "content": response_content["text"]})
+        # also generator
+        for delta in buffer_deltas(deltas):
+            raw_accum.append(delta)
+            program_output(delta, end="")
+
+        raw_full_text = "".join(raw_accum)  # full raw text with markers
+
+        action = extract_action(raw_full_text)
+
+        if action:
+            program_output(action, end="", style_name="action")
+            actionable = True
+            response_content["action"] = action
+
+        clean_full_text = re.sub(r"[\x1e\x1f]+", "", raw_full_text)
+
+        response_content["text"] = clean_full_text
+
+        # AI will remember raw text so it remembers the format needed
+        history.remember({"role": "assistant", "content": raw_full_text})
 
         return actionable, response_content
 
@@ -90,43 +102,30 @@ def stream_chunks(
                 break  # stop if the finish reason is 'stop
 
 
-def parse_deltas(deltas: Iterable[str]):
-    action_buffer, normal_buffer = [], []
-    printing_action = None
-
+def buffer_deltas(deltas: Iterable[str]):
+    buffer = []
     for delta in deltas:
-        if "[JSON_START]" in delta:
-            printing_action = True
-        if printing_action:
-            action_buffer.append(delta)
-            if "[JSON_END]" in delta:
-                action_str = "".join(action_buffer)
-                pre_text, rest = action_str.split("[JSON_START]")
-                actionable, post_text = rest.split("[JSON_END]")
-                # flush the buffer with actionable in order
-                normal_buffer.append(pre_text)
-                yield ("text", "".join(normal_buffer))
-                normal_buffer.clear()
+        buffer.append(delta)
+        if len(buffer) >= 5:  # magic number?
+            yield "".join(buffer)
+            buffer.clear()
 
-                yield ("action", actionable)
-                action_buffer.clear()
-                printing_action = False
+    if buffer:
+        yield "".join(buffer)
 
-                normal_buffer.append(post_text)
-        else:
-            normal_buffer.append(delta)
-            if len(normal_buffer) >= 5:  # magic number
-                # wasn't flushing the entire buffer before
-                yield ("text", "".join(normal_buffer))
-                normal_buffer.clear()
 
-    if normal_buffer:
-        yield ("text", "".join(normal_buffer))
+def extract_action(text: str) -> str | None:
+    start_tag, end_tag = "\x1e", "\x1f"
+    start = text.find(start_tag)
+    end = text.find(end_tag, start)
+
+    if start != -1 and end != -1:
+        action = text[start + len(start_tag) : end]
+        return action.strip()
+    return None
 
 
 def prompt_api_info() -> dict[str, str]:
-    # TODO create default w openai
-    # TODO only change 1 field
     instructions = """
     To use Cliqq, you need to configure it to work with your API of choice
     If you want to avoid having to provide your API information every time you use Cliqq, you can either:
