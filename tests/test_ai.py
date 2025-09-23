@@ -17,7 +17,7 @@ from cliqq import ai
     ],
 )
 def test_buffer_deltas_basic(test_input, expected):
-    # flushes after 5, then final one
+    # collect generator output into list
     result = list(ai.buffer_deltas(test_input))
     assert result == expected
 
@@ -85,30 +85,27 @@ def test_ensure_api_fail(monkeypatch):
     def fail_find(env_path):
         raise ValueError()
 
-    env_path = Path("dummy")
     api_config = Mock()
     # force check api credentials b/c one is empty
     api_config.model_name = ""
 
     monkeypatch.setattr(ai, "find_api_info", fail_find)
-    monkeypatch.setattr(ai, "program_output", lambda *a, **k: None)
 
-    result = ai.ensure_api(api_config, env_path)
+    result = ai.ensure_api(api_config, Mock())
     assert result is False
 
 
 # integration test: success
 def test_ai_response_success(monkeypatch):
     # fake ensure_api always valid
-    monkeypatch.setattr(ai, "ensure_api", lambda cfg, env: True)
+    monkeypatch.setattr(ai, "ensure_api", lambda c, e: True)
     # fake stream
+    # *a + **k == ignore any position or keyword args
     monkeypatch.setattr(
         ai,
         "stream_chunks",
-        lambda *a, **k: iter(["Hello ", "world\n", "\x1e{1}\x1f", " done"]),
+        lambda *a, **k: iter(["Hello ", "world\n", "\x1e{", "1}\x1f", " done"]),
     )
-    # silence program_output
-    monkeypatch.setattr(ai, "program_output", lambda msg, **k: None)
 
     api_config = Mock()
     api_config.model_name = "m"
@@ -119,9 +116,7 @@ def test_ai_response_success(monkeypatch):
     history.chat_history = []
     history.remember = Mock()
 
-    actionable, response_content = ai.ai_response(
-        "prompt", api_config, history, Path("dummy")
-    )
+    actionable, response_content = ai.ai_response("prompt", api_config, history, Mock())
 
     assert actionable is True
     assert response_content

@@ -39,7 +39,6 @@ def load_template(file_path: Path) -> str:
         return "You are a command line assistant running in a {OS} {SHELL} in {CWD}. {QUESTION}"
 
 
-# FIXME changed from FAlse to True!
 def user_input(log: bool = True) -> str:
     message = FormattedText(
         [

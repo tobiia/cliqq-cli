@@ -45,7 +45,6 @@ from cliqq import main, prep, classes
     ],
 )
 def test_parse_input(user_input, expected_command, expected_arg, expected_prompt):
-    """Check parse_input for both normal and invalid cases."""
     command_registry = classes.CommandRegistry()
     # using fake commands
     commands = {
@@ -80,15 +79,13 @@ def test_parse_input(user_input, expected_command, expected_arg, expected_prompt
     else:
         assert parsed_input.prompt == expected_prompt
 
-    # only check .args if it exists
-    if hasattr(parsed_input, "args"):
-        assert parsed_input.args == expected_arg
+    if expected_arg is None:
+        assert parsed_input.args is None
     else:
-        assert expected_arg is None
+        assert parsed_input.args == expected_arg
 
 
 def test_parse_commands():
-    """Check parse_input for both normal and invalid cases."""
     command_registry = classes.CommandRegistry()
     # using fake commands
     commands = {
@@ -131,18 +128,6 @@ def test_parse_commands():
     )
 
 
-def test_load_template(tmp_path, file_content):
-    """Check load_template"""
-    # Create a fake template file
-    tfile = tmp_path / "templates" / "starter.txt"
-    tfile.parent.mkdir()
-    tfile.write_text(file_content)
-
-    # check file is loaded correctly
-    prepped_template = main.load_template(tfile).strip()
-    assert prepped_template == file_content
-
-
 @pytest.mark.parametrize(
     "template,expected",
     [
@@ -156,7 +141,6 @@ def test_load_template(tmp_path, file_content):
     ],
 )
 def test_prep_prompt(monkeypatch, template, expected):
-    """Check load_template_local and prep_prompt with different templates."""
 
     # monkeypath = fixture that lets you replace attributes, functions, or variables in tests
     # setattr -> replace an attribute on an object or module

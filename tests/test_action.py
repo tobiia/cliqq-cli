@@ -39,6 +39,7 @@ def test_execute_command_notfound():
     assert "Command not found" in err
 
 
+# testing func run
 def test_run_command(monkeypatch):
     monkeypatch.setattr(action, "run_command", lambda d: True)
     data = '{"action":"command","command":"ls"}'
@@ -46,6 +47,7 @@ def test_run_command(monkeypatch):
     assert result is True
 
 
+# testing func run
 def test_run_file(monkeypatch):
     monkeypatch.setattr(action, "save_file", lambda d: True)
     data = '{"action":"file","path":"/tmp/test","content":"ok"}'
