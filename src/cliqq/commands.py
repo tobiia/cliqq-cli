@@ -17,8 +17,8 @@ from cliqq.models import (
 )
 
 
-def help(command_registry: CommandRegistry) -> None:
-    command_registry.parser.print_help()
+def help_cliqq(registry: CommandRegistry) -> None:
+    registry.parser.print_help()
 
 
 def exit_cliqq() -> NoReturn:
@@ -54,6 +54,8 @@ def clear_log(paths: PathManager) -> None:
     try:
         with open(paths.log_path, "w", encoding="utf-8") as f:
             f.write("")
+        with open(paths.debug_path, "w", encoding="utf-8") as f:
+            f.write("")
         program_output("Chat log cleared, let's start fresh!", style_name="action")
     except IOError as e:
         program_output(f"Error clearing log file: {e}", style_name="error")
@@ -76,6 +78,7 @@ def quick_response(
 
     # FIXME args might be a list...
     ai_response(args, paths.env_path, api_config, history)
+    print("\n")
     exit_cliqq()
 
 
@@ -116,7 +119,7 @@ def register_commands(registry: CommandRegistry) -> None:
         Command(
             name="/help",
             description="List Cliqq commands and what they do",
-            function=help,
+            function=help_cliqq,
         ),
     )
     registry.register_command(
