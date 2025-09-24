@@ -4,14 +4,14 @@ import re
 import psutil
 import argparse
 from pathlib import Path
-from cliqq.models import CommandRegistry
+from cliqq.models import CommandRegistry, QuietArgParser
 
 
 # usage
 # args = parser.parse_args([list of each argument given]) = obj with properties that correspond to args given
 # note: this is written where you always have .prompt and .command, args iff needed
 def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = QuietArgParser(
         prog="cliqq", description="A simple, lightweight command line chat assistant"
     )
 
@@ -46,12 +46,24 @@ def parse_input(
     tokens: list[str], parser: argparse.ArgumentParser
 ) -> argparse.Namespace:
 
+    cleaned = []
+    for t in tokens:
+        if not t:  # skip empty
+            continue
+        # strip away things like `cliqq`, `cliqq.exe`, `python`, `-m`, or file paths ending in .py
+        if t in {"cliqq", "python", "python.exe", "-m"}:
+            continue
+        if t.endswith(".py") or t.endswith("__main__.py"):
+            continue
+        cleaned.append(t)
+    tokens = cleaned
+
     # removing "cliqq" b/c argparse will interpret it as a command (prog)
     if len(tokens) > 0 and tokens[0] == "cliqq":
         tokens = tokens[1:]
     try:
         ns = parser.parse_args(tokens)
-    except SystemExit:
+    except (SystemExit, ValueError):
         # occurs if argsv only has 1 word non-prompt or if user starts prompt with "cliqq"
         # or if user enters a command with no args with an argument
         # fallback: treat everything as a prompt
@@ -78,10 +90,10 @@ def prep_prompt(prompt: str, template: str) -> str:
     # this is potentially sensitive info
     safe_cwd = cwd.replace(str(Path.home()), "~")
 
-    prompt_template = re.sub(r"<OS>", op_sys, template)
-    prompt_template = re.sub(r"<SHELL>", shell, prompt_template)
-    prompt_template = re.sub(r"<CWD>", safe_cwd, prompt_template)
-    prompt_template = re.sub(r"<QUESTION>", prompt, prompt_template)
+    prompt_template = template.replace("<OS>", op_sys)
+    prompt_template = prompt_template.replace("<SHELL>", shell)
+    prompt_template = prompt_template.replace("<CWD>", safe_cwd)
+    prompt_template = prompt_template.replace("<QUESTION>", prompt)
     return prompt_template
 
 

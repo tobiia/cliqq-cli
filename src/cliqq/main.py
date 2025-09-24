@@ -3,20 +3,20 @@
 # don't forget the . !!
 
 # cd src
-# python -m cliqq.main
+# python -m cliqq
 # for local
 
 import shlex
 import sys
 from pathlib import Path
 
+from cliqq.log import logger
+from cliqq.io import program_choice, program_output, user_input
+from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
 from cliqq.prep import prep_prompt, parse_commands, parse_input
 from cliqq.commands import dispatch, exit_cliqq, register_commands
 from cliqq.ai import ai_response
 from cliqq.action import run
-from cliqq.log import logger
-from cliqq.io import program_choice, program_output, user_input
-from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
 
 
 # NOTE: for when this is a pip-installable package
@@ -137,6 +137,7 @@ def main() -> None:
             actionable, response_content = ai_response(
                 user_prompt, paths.env_path, api_config, history
             )
+            print("\n")
 
             if response_content:
 
