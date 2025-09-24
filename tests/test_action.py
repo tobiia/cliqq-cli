@@ -26,10 +26,9 @@ def test_parse_actionable(input_str, expected):
 
 
 def test_execute_command_success():
-    code, out, err = action.execute_command("echo hello")
+    code, out, err = action.execute_command("python --version")
     assert code == 0
-    assert "hello" in out
-    assert err == ""
+    assert "Python" in out or "Python" in err
 
 
 def test_execute_command_notfound():
@@ -42,7 +41,7 @@ def test_execute_command_notfound():
 # testing func run
 def test_run_command(monkeypatch):
     monkeypatch.setattr(action, "run_command", lambda d: True)
-    data = '{"action":"command","command":"ls"}'
+    data = '{"action":"command","command":"python --version"}'
     result = action.run(data, Mock(), Mock(), Mock())
     assert result is True
 

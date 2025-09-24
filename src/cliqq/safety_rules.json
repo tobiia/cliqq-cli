@@ -1,0 +1,25 @@
+{
+  "DENY_ALWAYS": [
+    "rm -rf", "rm -fr", "rm -r", "rm -f", "rm --no-preserve-root",
+    "del /s", "del /q", "rmdir /s", "rmdir /q",
+    "format", "mkfs", "diskpart", "fdisk", "wipefs", "dd if=",
+    ":(){ :|:& };:", "rm *", "rm .*", "del *", "del .*",
+    "shred -f", "sdelete", "cipher /w",
+    "shutdown", "reboot", "halt", "poweroff", "init 0", "init 6",
+    "kill -9 -1", "killall -9", "taskkill /F /IM *",
+    "sudo ", "su ", "runas ", "pkexec", "doas",
+    "/etc/passwd", "/etc/shadow", "/boot", "/bin", "/sbin",
+    "C:\\Windows\\System32", "C:\\Windows\\System",
+    "chown -R", "chmod -R 777", "icacls", "takeown",
+    "scp ", "sftp ", "ftp ", "tftp ", "nc ", "netcat"
+  ],
+  "CONFIRM_FIRST": [
+    "apt-get", "apt ", "yum ", "dnf ", "zypper ",
+    "brew ", "choco ", "winget ",
+    "pip install", "python -m pip install",
+    "mv /", "mv *", "cp /", "cp *",
+    "curl ", "wget ", "Invoke-WebRequest", "Invoke-Expression",
+    "iptables", "ufw", "netsh",
+    "sed -i", "truncate", "dd of="
+  ]
+}

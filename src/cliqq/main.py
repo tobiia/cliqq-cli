@@ -15,7 +15,7 @@ from cliqq.commands import dispatch, exit_cliqq, register_commands
 from cliqq.ai import ai_response
 from cliqq.action import run
 from cliqq.log import logger
-from cliqq.io import program_output, user_input
+from cliqq.io import program_choice, program_output, user_input
 from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
 
 
@@ -142,9 +142,18 @@ def main() -> None:
             if response_content:
 
                 if actionable:
+
                     action = response_content["action"]  # json
-                    # FIXME ask user if they want to run or not
-                    if run(action, api_config, history, paths):
+
+                    choices = [
+                        ("yes", "Yes"),
+                        ("no", "No"),
+                    ]
+                    user_choice = program_choice(
+                        "Would you like me to carry this out?",
+                        choices,
+                    )
+                    if user_choice == "yes" and run(action, api_config, history, paths):
                         program_output(
                             "And your request has been completed! Do you have another question?"
                         )

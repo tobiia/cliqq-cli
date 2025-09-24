@@ -7,6 +7,13 @@ from cliqq.log import logger
 from cliqq.io import user_input, program_output, program_choice
 from cliqq.models import ApiConfig, ChatHistory, PathManager
 
+# load safety rules once
+with open(Path(__file__).parent / "safety_rules.json", encoding="utf-8") as f:
+    RULES = json.load(f)
+
+DENY_ALWAYS = [t.lower() for t in RULES["DENY_ALWAYS"]]
+CONFIRM_FIRST = [t.lower() for t in RULES["CONFIRM_FIRST"]]
+
 
 def run(
     actionable: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
@@ -40,15 +47,85 @@ def parse_actionable(actionable: str) -> dict[str, str] | None:
         return None
 
 
+# args = command as a str, just called args so commands.dispatch works
+def run_command(
+    args: str,
+    env_path: Path,
+    api_config: ApiConfig,
+    history: ChatHistory,
+    ask: bool = True,
+) -> bool:
+
+    # for clarity
+    command = args
+
+    danger_level = classify_command(command)
+
+    if danger_level == "deny":
+
+        logger.error(f"Command denied: {command}")
+        program_output(
+            f"This command is considered too dangerous and will not be run:\n  {command}",
+            style_name="error",
+        )
+
+        return False
+
+    elif danger_level == "confirm":
+
+        choices = [
+            ("yes", "Yes"),
+            ("no", "No"),
+        ]
+        user_choice = program_choice(
+            f"This command may be unsafe or cause permanent changes to your system. Do you want to continue?\n  {command}",
+            choices=choices,
+        )
+        if user_choice == "no":
+            program_output("Command aborted.", style_name="error")
+            return False
+
+    code, stdout, stderr = execute_command(command)
+
+    if stdout:
+        program_output(
+            f"Command `{command}` succeeded with exit code {code}:\n{stdout}"
+        )
+
+    if stderr:
+        program_output(
+            f"Command `{command}` failed with exit code {code}:\n{stderr}",
+            style_name="error",
+        )
+
+    if ask:
+        offer_analyze_output(stdout, env_path, api_config, history)
+
+    return code == 0
+
+
 def execute_command(command: str) -> tuple[int, str, str]:
     try:
         cmd = shlex.split(command)
 
-        output = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        # NOTE: This program executes commands with `shell=True` to support a broader range of functionality. While this improves compatibility, it also increases potential security risks. A strict denylist is enforced, and the AI is instructed not to generate dangerous commands. However, please exercise caution and use this software with an understanding of the associated risks.
+
+        output = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, shell=True
+        )
 
         return output.returncode, output.stdout.strip(), output.stderr.strip()
     except FileNotFoundError:
         return 127, "", f"Command not found: {command}"
+
+
+def classify_command(command: str) -> str:
+    lowered = command.lower()
+    if any(token in lowered for token in DENY_ALWAYS):
+        return "deny"
+    if any(token in lowered for token in CONFIRM_FIRST):
+        return "confirm"
+    return "safe"
 
 
 def offer_analyze_output(
@@ -66,35 +143,6 @@ def offer_analyze_output(
         from cliqq.ai import ai_response
 
         ai_response(output.stdout.strip(), env_path, api_config, history)
-
-
-# args = command as a str, just called args so commands.dispatch works
-def run_command(
-    args: str,
-    env_path: Path,
-    api_config: ApiConfig,
-    history: ChatHistory,
-    ask: bool = True,
-) -> bool:
-
-    # for clarity
-    command = args
-
-    code, stdout, stderr = execute_command(command)
-
-    if code != 0:
-        program_output(
-            f"Command {command} failed with exit code {code}:\n{stderr}\nPlease try again!",
-            style_name="error",
-        )
-        return False
-
-    program_output(stdout.strip(), style_name="action")
-
-    if ask:
-        offer_analyze_output(stdout, env_path, api_config, history)
-
-    return True
 
 
 def save_file(file: dict[str, str], overwrite: bool = False) -> bool:

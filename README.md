@@ -4,17 +4,6 @@ a simple, lightweight command line chat assistant to answer questions and carry 
 
 Cliqq is a simple, lightweight command-line interface tool that integrates AI capabilities to assist with various tasks, including command execution, file creation, and code generation. It runs seamlessly on Windows, Linux, and macOS.
 
-## Dependencies
-
-- Python 3.8+
-- pip
-- pytest
-- openai
-- prompt_toolkit
-- psutil
-- python-dotenv
-- Additional AI SDKs depending on the configured provider
-
 ## Installation
 
 Windows (Powershell):
@@ -61,6 +50,8 @@ cliqq q "your question or request"
 
 ## Configuration
 
+> If no configuration is found, Cliqq will prompt for credentials and can generate this file automatically.
+
 Cliqq requires valid API credentials. It supports multiple providers including OpenAI, Anthropic, DeepSeek, and OpenRouter. Credentials can be supplied via a `.env` file or system environment variables.
 
 ### Option 1: `.env` file
@@ -74,8 +65,6 @@ MODEL_NAME="your_model_name"
 BASE_URL="your_base_url"
 API_KEY="your_api_key"
 ```
-
-> If no configuration is found, Cliqq will prompt for credentials and can generate this file automatically.
 
 ### Option 2: Environment variables
 
@@ -93,6 +82,25 @@ export MODEL_NAME=your_model_name
 export BASE_URL=your_base_url
 export API_KEY=your_api_key
 ```
+## Security Notice
+
+This program runs commands with shell=True so it can handle a wider variety of commands. While this increases compatibility and flexibility, it also increases potential risks (ex. deleting important files). To reduce this, I've written a denylist of dangerous commands, guided the AI not to generate harmful ones, and made sure that it thoroughly explains what commands it suggests.
+
+These precautions make the program safer to use, but it’s still important to be mindful of what’s being executed. Please only use the program only with trusted AI providers (well-known, professional platforms) or your own local AI models, not with unverified or experimental services.
+
+And, I would suggest just deleting files by yourself. Just in case.
+
+
+## Dependencies
+
+- Python 3.8+
+- pip
+- pytest
+- openai
+- prompt_toolkit
+- psutil
+- python-dotenv
+- Additional AI SDKs depending on the configured provider
 
 ## Project Structure
 
