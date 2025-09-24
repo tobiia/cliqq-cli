@@ -14,16 +14,16 @@ from cliqq import ai
         ),
     ],
 )
-def test_buffer_deltas_basic(test_input, expected):
+def test_buffer_deltas(test_input, expected):
     # collect generator output into list
-    result = list(ai.buffer_deltas(test_input))
+    result = list(ai.buffer_output(test_input))
     assert result == expected
 
 
 @pytest.mark.parametrize(
     "test_input,expected",
     [
-        ('hello \x1e{ "do":1 }\x1f bye', '{ "do":1 }'),
+        ('hello \x1e{ "":1 }\x1f bye', '{ "":1 }'),
         ("no markers here", None),
         ("i'm missing one of the delimitors \x1e{'do':1}", None),
     ],
@@ -103,13 +103,21 @@ def test_ensure_api_fail(monkeypatch):
 # integration test: success
 def test_ai_response_success(monkeypatch):
     # fake ensure_api always valid
-    monkeypatch.setattr(ai, "ensure_api", lambda c, e: True)
-    # fake stream
     # *a + **k == ignore any position or keyword args
+    monkeypatch.setattr(ai, "ensure_api", lambda *a, **k: True)
+    # fake stream
     monkeypatch.setattr(
         ai,
         "stream_chunks",
-        lambda *a, **k: iter(["Hello ", "world\n", "\x1e{", "1}\x1f", " done"]),
+        lambda *a, **k: iter(
+            [
+                "Hello ",
+                "world\n",
+                " done",
+                "\x1e{",
+                "1}\x1f",
+            ]
+        ),
     )
 
     api_config = Mock()
@@ -121,13 +129,13 @@ def test_ai_response_success(monkeypatch):
     history.chat_history = []
     history.remember = Mock()
 
-    actionable, response_content = ai.ai_response(
+    action_str, response = ai.ai_response(
         user_prompt="prompt", env_path=Mock(), api_config=api_config, history=history
     )
 
-    assert actionable is True
-    assert response_content
-    assert response_content["text"] == "Hello world\n{1} done"
-    assert response_content["action"] == "{1}"
+    assert action_str
+    assert response
+    assert response == "Hello world\n done{1}"
+    assert action_str == "{1}"
     history.remember.assert_any_call({"role": "user", "content": "prompt"})
     history.remember.assert_any_call({"role": "assistant", "content": ANY})

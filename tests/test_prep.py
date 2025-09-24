@@ -140,3 +140,25 @@ def test_prep_prompt(monkeypatch, template, expected):
 
     result = prep.prep_prompt("hello", template)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "input_str,expected",
+    [
+        (
+            '{"action":"command","command":"echo hi"}',
+            {"action": "command", "command": "echo hi"},
+        ),
+        (
+            '{"action":"file","path":"/fake/path","content":"this is in the file"}',
+            {"action": "file", "path": "/fake/path", "content": "this is in the file"},
+        ),
+        ("not valid json", None),
+    ],
+)
+def test_parse_action(input_str, expected):
+    result = prep.parse_action(input_str)
+    if expected is None:
+        assert result is None
+    else:
+        assert result == expected
