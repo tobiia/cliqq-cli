@@ -39,7 +39,6 @@ def load_template(file_path: Path) -> str:
 
 
 def main() -> None:
-    # REVIEW time for testing...
 
     intro = r""" 
 
