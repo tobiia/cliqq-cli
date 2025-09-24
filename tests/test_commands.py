@@ -41,7 +41,7 @@ def test_dispatch_with_args():
 
     # Assert func was called once with the right kwargs
     func.assert_called_once_with(
-        args=["argument"],
+        args="argument",
         api_config=api_config,
         registry=registry,
     )

@@ -52,7 +52,7 @@ def test_execute_command_notfound():
 # testing func run
 def test_run_valid_command(monkeypatch):
     monkeypatch.setattr(action, "run_command", lambda *a, **k: True)
-    data = '{"action":"command","command":"python --version"}'
+    data = '{"action":"command","command":"cd"}'
     result = action.run(data, Mock(), Mock(), Mock())
     assert result is True
 
