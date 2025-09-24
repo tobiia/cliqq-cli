@@ -60,7 +60,8 @@ def program_output(
         )
         plain_text = to_plain_text(message[1][1])
 
-    if log:
+    # don't log every streaming chunk
+    if log and not continuous:
         if end:
             logger.info(f"{plain_text}{text}{end}")
         else:

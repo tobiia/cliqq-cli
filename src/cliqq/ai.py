@@ -58,10 +58,11 @@ def ai_response(
 
         raw_accum = []
 
+        # FIXME avoid showing the delimiters and such
         # also generator
         for delta in buffer_deltas(deltas):
             raw_accum.append(delta)
-            program_output(delta, end="", style_name="info", continuous=True)
+            program_output(delta, end="", style_name="info", continuous=True, log=False)
 
         raw_full_text = "".join(raw_accum)  # full raw text with markers
 
@@ -78,6 +79,9 @@ def ai_response(
 
         # AI will remember raw text so it remembers the format needed
         history.remember({"role": "assistant", "content": raw_full_text})
+
+        # log the full cleaned text
+        logger.info(clean_full_text)
 
         return actionable, response_content
 

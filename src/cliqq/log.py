@@ -30,7 +30,7 @@ class BufferingFileHandler(logging.Handler):
             return
         log_text = "".join(self._buffer)
         with open(self._filename, "a", encoding="utf-8") as f:
-            f.write(log_text)
+            f.write(log_text + "\n\n")
         self._buffer.clear()
 
 

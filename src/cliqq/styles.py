@@ -12,6 +12,6 @@ DEFAULT_STYLE = Style.from_dict(
         "action": "#71aabd",
         "error": "#e22d2d",
         "input-selection": "#71aabd",
-        "selected-option": "underline",
+        "selected-option": "underline bold",
     }
 )
