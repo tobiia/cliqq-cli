@@ -22,7 +22,7 @@ def run(
     paths: PathManager,
 ) -> bool:
 
-    action_type = action.get("action")
+    action_type = action.get("type")
     if action_type == "command":
         return run_command(action["command"], api_config, history, paths)
     elif action_type == "file":
@@ -74,12 +74,12 @@ def run_command(
 
     if stdout:
         program_output(
-            f"Command `{command}` succeeded with exit code {code}:\n{stdout}"
+            f"Command `{command}` succeeded with exit code {code}:\n{stdout}\n"
         )
 
     if stderr:
         program_output(
-            f"Command `{command}` failed with exit code {code}:\n{stderr}",
+            f"Command `{command}` failed with exit code {code}:\n{stderr}\n",
             style_name="error",
         )
 
@@ -114,7 +114,7 @@ def classify_command(command: str) -> str:
 
 
 def offer_analyze_output(
-    output, env_path: Path, api_config: ApiConfig, history: ChatHistory
+    stdout: str, env_path: Path, api_config: ApiConfig, history: ChatHistory
 ) -> None:
     choices = [
         ("yes", "Yes"),
@@ -127,7 +127,7 @@ def offer_analyze_output(
     if user_choice == "yes":
         from cliqq.ai import ai_response
 
-        ai_response(output.stdout.strip(), env_path, api_config, history)
+        ai_response(stdout.strip(), env_path, api_config, history)
 
 
 def save_file(file: dict[str, str], overwrite: bool = False) -> bool:

@@ -13,6 +13,8 @@ API_ERROR_MESSAGES = {
     openai.AuthenticationError: "API information validation failed: invalid API key",
     openai.BadRequestError: "API information validation failed: invalid model name",
     openai.NotFoundError: "API information validation failed: invalid base URL",
+    openai.RateLimitError: "Request failed: rate limit exceeded (too many requests). Please wait and try again",
+    openai.APIConnectionError: "Request failed: unable to connect to the API (network error). Please check your connection and try again",
     ValueError: "Invalid API credentials (checked .env, system environment variables, and user input)",
 }
 
@@ -37,29 +39,22 @@ def ai_response(
             )
             return None, ""
 
-        try:
-            client = api_config.get_client()
-        except Exception:
-            client = None
-
         # generator
         deltas = stream_chunks(
-            api_config.model_name,
-            api_config.base_url,
-            api_config.api_key,
-            client,
+            api_config,
             history.chat_history,
         )
 
         raw_accum = []
+        output = True
 
         # also generator
         for delta in buffer_output(deltas):
             # delimiter = flush immediately and stop
             raw_accum.append(delta)
             if "\x1e" in delta:
-                print = False
-            if print:
+                output = False
+            if output:
                 program_output(
                     delta, end="", style_name="info", continuous=True, log=False
                 )
@@ -85,18 +80,21 @@ def ai_response(
 
 
 def stream_chunks(
-    model_name: str,
-    base_url: str,
-    api_key: str,
-    cached_client,
+    api_config: ApiConfig,
     chat_history: list[dict[str, str]],
 ):
 
-    if cached_client is None:
-        client = openai.OpenAI(api_key=api_key, base_url=base_url)
+    try:
+        client = api_config.client
+    except Exception:
+        client = None
+
+    if client is None:
+        client = openai.OpenAI(api_key=api_config.api_key, base_url=api_config.base_url)
+        api_config.client = client
 
     with client.chat.completions.create(
-        model=model_name,
+        model=api_config.model_name,
         messages=chat_history,  # type: ignore
         stream=True,
     ) as stream:
@@ -128,13 +126,12 @@ def buffer_output(deltas: Iterable[str], max_count: int = 5, max_chars: int = 20
 
 
 def extract_action(text: str) -> str | None:
-    start_tag, end_tag = "\x1e", "\x1f"
-    start = text.find(start_tag)
-    end = text.find(end_tag, start)
-
-    if start != -1 and end != -1:
-        action = text[start + len(start_tag) : end]
-        return action.strip()
+    variants = [("\x1e", "\x1f"), ("\\x1e", "\\x1f")]
+    for start_tag, end_tag in variants:
+        start = text.find(start_tag)
+        end = text.find(end_tag, start + len(start_tag))
+        if start != -1 and end != -1:
+            return text[start + len(start_tag) : end].strip()
     return None
 
 
