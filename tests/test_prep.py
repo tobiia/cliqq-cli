@@ -162,3 +162,15 @@ def test_parse_action(input_str, expected):
         assert result is None
     else:
         assert result == expected
+
+
+def test_load_template(tmp_path):
+    # Create a fake template file
+    file_content = "this is meant to be inside a file!"
+    tfile = tmp_path / "templates" / "starter.txt"
+    tfile.parent.mkdir(parents=True, exist_ok=True)
+    tfile.write_text(file_content)
+
+    # check file is loaded correctly
+    template = prep.load_template(tfile).strip()
+    assert template == file_content

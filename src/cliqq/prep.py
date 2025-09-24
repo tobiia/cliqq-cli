@@ -104,3 +104,22 @@ def parse_action(action_str: str) -> dict[str, str] | None:
     except json.JSONDecodeError as e:
         logger.exception("Unable to parse actionable: %s", e)
         return None
+
+
+# NOTE: for while i'm testing
+def load_template(file_path: Path) -> str:
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError as e:
+        logger.exception("FileNotFoundError: %s", e)
+        return "You are a command line assistant running in a {OS} {SHELL} in {CWD}. {QUESTION}"
+
+
+# NOTE: for when this is a pip-installable package
+""" def load_template_pack(name: str) -> str:
+    # templates is a subpackage of mypackage
+    with resources.files("mypackage.templates").joinpath(name).open(
+        "r", encoding="utf-8"
+    ) as f:
+        return f.read() """

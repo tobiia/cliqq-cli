@@ -15,6 +15,7 @@ from cliqq.models import (
     CommandRegistry,
     PathManager,
 )
+from cliqq.prep import load_template
 
 
 def help_cliqq(registry: CommandRegistry) -> None:
@@ -62,8 +63,10 @@ def clear_log(paths: PathManager) -> None:
         raise IOError(f"IOError, error reading log file: {e}")
 
 
-def clear_context(history: ChatHistory) -> None:
+def clear_context(history: ChatHistory, paths: PathManager) -> None:
     history.forget()
+    template = load_template(paths.script_path / "templates" / "starter_template.txt")
+    history.remember({"role": "system", "content": template})
     program_output(
         "Chat history cleared. I don't remember anything? I don't remember anything!",
         style_name="action",

@@ -14,29 +14,16 @@ import json
 from cliqq.log import logger
 from cliqq.io import program_choice, program_output, user_input
 from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
-from cliqq.prep import parse_action, prep_prompt, parse_commands, parse_input
+from cliqq.prep import (
+    parse_action,
+    prep_prompt,
+    parse_commands,
+    parse_input,
+    load_template,
+)
 from cliqq.commands import dispatch, exit_cliqq, register_commands
 from cliqq.ai import ai_response
 from cliqq.action import run
-
-
-# NOTE: for when this is a pip-installable package
-""" def load_template_pack(name: str) -> str:
-    # templates is a subpackage of mypackage
-    with resources.files("mypackage.templates").joinpath(name).open(
-        "r", encoding="utf-8"
-    ) as f:
-        return f.read() """
-
-
-# NOTE: for while i'm testing
-def load_template(file_path: Path) -> str:
-    try:
-        with open(file_path, encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError as e:
-        logger.exception("FileNotFoundError: %s", e)
-        return "You are a command line assistant running in a {OS} {SHELL} in {CWD}. {QUESTION}"
 
 
 def main() -> None:
@@ -65,6 +52,7 @@ def main() -> None:
     input = ""
     template = ""
 
+    # FIXME probably should save the templates...make sure to change all when i do
     template = load_template(paths.script_path / "templates" / "starter_template.txt")
     history.remember({"role": "system", "content": template})
     template = load_template(paths.script_path / "templates" / "reminder_template.txt")
