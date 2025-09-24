@@ -1,19 +1,8 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Callable, Optional, Any, TYPE_CHECKING
+from typing import Callable, Optional, Any
 from dataclasses import dataclass
-
-if TYPE_CHECKING:
-    from cliqq.commands import (
-        exit_cliqq,
-        show_log,
-        clear_log,
-        clear,
-        clear_context,
-        clear_context,
-        quick_response,
-    )
 
 
 # should maybe use dependency injection (FastAPI) or contextvars (Flask)...
@@ -86,12 +75,12 @@ class ChatHistory:
 class CommandRegistry:
     def __init__(self):
         self._parser: argparse.ArgumentParser = argparse.ArgumentParser()
-        self.commands: dict[str, Command] = {cmd.name: cmd for cmd in DEFAULT_COMMANDS}
+        self.commands: dict[str, Command] = {}
 
     def get_command(self, command_name: str) -> Command | None:
         return self.commands.get(command_name)
 
-    def add_command(self, key: str, command: Command) -> None:
+    def register_command(self, key: str, command: Command) -> None:
         self.commands[key] = command
 
     @property
@@ -157,51 +146,3 @@ class PathManager:
             pass
 
         # .env not created unless user gives permission
-
-
-DEFAULT_COMMANDS: list[Command] = [
-    # TODO cliqq api [model_name] [base_url], and [api_key]
-    # maybe call find_api_info with these as optional args
-    Command(
-        name="/help",
-        description="List Cliqq commands and what they do",
-        function=help,
-    ),
-    Command(
-        name="/exit",
-        description="Say goodbye to Cliqq (exit program)",
-        function=exit_cliqq,
-    ),
-    Command(
-        name="/log",
-        description="See chat log",
-        function=show_log,
-    ),
-    Command(
-        name="/wipe",
-        description="Empty log file",
-        function=clear_log,
-    ),
-    Command(
-        name="/clear",
-        description="Clear the terminal window",
-        function=clear,
-    ),
-    Command(
-        name="/forget",
-        description="Reset Cliqq's memory",
-        function=clear_context,
-    ),
-    Command(
-        name="/run",
-        description="Run a command and have Cliqq analyze the output",
-        function=clear_context,
-        args="[command]",
-    ),
-    Command(
-        name="/q",
-        description="Non-interactive mode: send a single prompt and quickly get a response",
-        function=quick_response,
-        args="[prompt]",
-    ),
-]

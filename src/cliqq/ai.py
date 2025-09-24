@@ -8,10 +8,9 @@ import openai
 from cliqq.log import logger
 from cliqq.io import program_output, user_input, program_choice
 from typing import TYPE_CHECKING
-from cliqq.action import save_file
 
 if TYPE_CHECKING:
-    from cliqq.classes import ApiConfig, ChatHistory
+    from cliqq.models import ApiConfig, ChatHistory
 
 API_ERROR_MESSAGES = {
     openai.AuthenticationError: "API information validation failed: invalid API key",
@@ -218,6 +217,8 @@ def offer_save_env(config: dict[str, str], env_path: Path) -> None:
 def save_env_file(config: dict[str, str], env_path: Path) -> bool:
     content = f"MODEL_NAME={config['model_name']}\nBASE_URL={config['base_url']}\nAPI_KEY={config['api_key']}\n"
     file = {"action": "file", "path": env_path, "content": content}
+    from cliqq.action import save_file
+
     return save_file(file, overwrite=True)
 
 

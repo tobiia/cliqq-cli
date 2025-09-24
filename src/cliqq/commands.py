@@ -7,10 +7,16 @@ from typing import NoReturn, TYPE_CHECKING
 
 from cliqq.log import logger
 from cliqq.io import program_output
+from cliqq.action import run_command
 
 if TYPE_CHECKING:
-    from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
-    from cliqq.ai import ai_response
+    from cliqq.models import (
+        Command,
+        ApiConfig,
+        ChatHistory,
+        CommandRegistry,
+        PathManager,
+    )
 
 
 def help(command_registry: CommandRegistry) -> None:
@@ -68,6 +74,7 @@ def clear_context(history: ChatHistory) -> None:
 def quick_response(
     args, api_config: ApiConfig, history: ChatHistory, paths: PathManager
 ) -> None:
+    from cliqq.ai import ai_response
 
     ai_response(args, paths.env_path, api_config, history)
     exit_cliqq()
@@ -102,3 +109,72 @@ def dispatch(
         kwargs["args"] = user_input.args
 
     func(**kwargs)
+
+
+def register_commands(registry: CommandRegistry) -> None:
+    registry.register_command(
+        "/help",
+        Command(
+            name="/help",
+            description="List Cliqq commands and what they do",
+            function=help,
+        ),
+    )
+    registry.register_command(
+        "/exit",
+        Command(
+            name="/exit",
+            description="Say goodbye to Cliqq (exit program)",
+            function=exit_cliqq,
+        ),
+    )
+    registry.register_command(
+        "/log",
+        Command(
+            name="/log",
+            description="See chat log",
+            function=show_log,
+        ),
+    )
+    registry.register_command(
+        "/wipe",
+        Command(
+            name="/wipe",
+            description="Empty log file",
+            function=clear_log,
+        ),
+    )
+    registry.register_command(
+        "/clear",
+        Command(
+            name="/clear",
+            description="Clear the terminal window",
+            function=clear,
+        ),
+    )
+    registry.register_command(
+        "/forget",
+        Command(
+            name="/forget",
+            description="Reset Cliqq's memory",
+            function=clear_context,
+        ),
+    )
+    registry.register_command(
+        "/run",
+        Command(
+            name="/run",
+            description="Run a command and have Cliqq analyze the output",
+            function=run_command,
+            args="[command]",
+        ),
+    )
+    registry.register_command(
+        "/q",
+        Command(
+            name="/q",
+            description="Non-interactive mode: send a single prompt and quickly get a response",
+            function=quick_response,
+            args="[prompt]",
+        ),
+    )

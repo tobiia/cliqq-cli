@@ -5,7 +5,7 @@ import types
 import sys
 import pytest
 
-from cliqq import prep, classes
+from cliqq import models, prep
 
 
 @pytest.mark.parametrize(
@@ -45,15 +45,15 @@ from cliqq import prep, classes
     ],
 )
 def test_parse_input(user_input, expected_command, expected_arg, expected_prompt):
-    command_registry = classes.CommandRegistry()
+    command_registry = models.CommandRegistry()
     # using fake commands
     commands = {
-        "/noargs": classes.Command(
+        "/noargs": models.Command(
             name="/noargs",
             description="A command with no args",
             function=lambda *a, **k: None,
         ),
-        "/withargs": classes.Command(
+        "/withargs": models.Command(
             name="/withargs",
             description="A command with args",
             function=lambda *a, **k: None,
@@ -86,15 +86,15 @@ def test_parse_input(user_input, expected_command, expected_arg, expected_prompt
 
 
 def test_parse_commands():
-    command_registry = classes.CommandRegistry()
+    command_registry = models.CommandRegistry()
     # using fake commands
     commands = {
-        "/noargs": classes.Command(
+        "/noargs": models.Command(
             name="/noargs",
             description="A command with no args",
             function=lambda *a, **k: None,
         ),
-        "/withargs": classes.Command(
+        "/withargs": models.Command(
             name="/withargs",
             description="A command with args",
             function=lambda *a, **k: None,

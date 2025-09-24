@@ -6,10 +6,9 @@ import shlex
 from cliqq.log import logger
 from cliqq.io import user_input, program_output, program_choice
 from typing import TYPE_CHECKING
-from cliqq.ai import ai_response
 
 if TYPE_CHECKING:
-    from cliqq.classes import ApiConfig, ChatHistory, PathManager
+    from cliqq.models import ApiConfig, ChatHistory, PathManager
 
 
 def run(
@@ -67,6 +66,8 @@ def offer_analyze_output(
         choices,
     )
     if user_choice == "yes":
+        from cliqq.ai import ai_response
+
         ai_response(output.stdout.strip(), env_path, api_config, history)
 
 

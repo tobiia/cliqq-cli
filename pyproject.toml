@@ -27,6 +27,10 @@ keywords = ["cli", "chatbot", "openai", "assistant"]
 [project.urls]
 Homepage = "https://github.com/tobiia/cliqq-cli"
 
+# console entry point
+[project.scripts] # pip create executable cliqq on install
+cliqq = "cliqq.main:main" # import cliqq.main, call main()
+
 # cliqq is importable even without installing
 [tool.pytest.ini_options]
 testpaths = ["tests"]

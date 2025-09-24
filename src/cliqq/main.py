@@ -12,14 +12,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from cliqq.prep import prep_prompt, parse_commands, parse_input
-from cliqq.commands import dispatch, exit_cliqq
+from cliqq.commands import dispatch, exit_cliqq, register_commands
 from cliqq.ai import ai_response
 from cliqq.action import run
 from cliqq.log import logger
 from cliqq.io import program_output, user_input
 
 if TYPE_CHECKING:
-    from cliqq.classes import ApiConfig, ChatHistory, CommandRegistry, PathManager
+    from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
 
 
 # NOTE: for when this is a pip-installable package
@@ -60,7 +60,8 @@ def main() -> None:
     # set up session
     api_config = ApiConfig()
     history = ChatHistory()
-    command_registry = CommandRegistry()
+    registry = CommandRegistry()
+    register_commands(registry)
     paths = PathManager()
 
     user_prompt = None
@@ -73,15 +74,15 @@ def main() -> None:
 
     # check for if program was invoked with a command
     # build the parser once and reuse it in the interactive loop
-    parser = parse_commands(command_registry)
+    parser = parse_commands(registry)
     # store parser on session so help cmd can access it
-    command_registry.parser = parser
+    registry.parser = parser
 
     parsed_input = parse_input(sys.argv, parser)
 
     if parsed_input.command:
         if parsed_input.command == "/q":
-            dispatch(parsed_input, api_config, history, command_registry, paths)
+            dispatch(parsed_input, api_config, history, registry, paths)
         elif parsed_input.command == "/invalid":
             program_output(
                 "You have entered a command incorrectly. Type just '/help' to learn more.",
@@ -90,7 +91,7 @@ def main() -> None:
         else:
             program_output(intro)
             program_output("Hello! I am Cliqq, the command-line AI chatbot.")
-            dispatch(parsed_input, api_config, history, command_registry, paths)
+            dispatch(parsed_input, api_config, history, registry, paths)
 
         init_arg = None
     elif parsed_input.prompt:
@@ -126,7 +127,7 @@ def main() -> None:
                 )
                 input = ""
             else:
-                dispatch(parsed_input, api_config, history, command_registry, paths)
+                dispatch(parsed_input, api_config, history, registry, paths)
             input = ""
         else:
             # treat all words written by user as an AI prompt
