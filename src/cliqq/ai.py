@@ -54,7 +54,7 @@ def ai_response(
         # also generator
         for delta in buffer_deltas(deltas):
             raw_accum.append(delta)
-            program_output(delta, end="")
+            program_output(delta, end="", style_name="info", continuous=True)
 
         raw_full_text = "".join(raw_accum)  # full raw text with markers
 
@@ -136,7 +136,6 @@ def prompt_api_info() -> dict[str, str]:
 
     program_output(
         "Your API information could not be found automatically.",
-        style_name="error",
     )
     program_output(instructions)
     program_output(
@@ -171,6 +170,7 @@ def prompt_api_info() -> dict[str, str]:
 def validate_api(config: dict[str, str], env_path: Path) -> bool:
     try:
         if ping_api(config):
+            # FIXME fires even if i have environ configured
             offer_save_env(config, env_path)
             return True
     except openai.AuthenticationError as e:
