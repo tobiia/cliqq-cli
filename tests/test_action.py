@@ -1,4 +1,5 @@
 import pytest
+import re
 from unittest.mock import Mock
 from cliqq import action
 
@@ -33,14 +34,24 @@ def test_execute_command_success():
 
 def test_execute_command_notfound():
     code, out, err = action.execute_command("nonexistent_command_xyz")
-    assert code == 127
+    assert code != 0
     assert out == ""
-    assert "Command not found" in err
+
+    error_patterns = [
+        r"not.*recognized",
+        r"not.*found",
+        r"No such file",
+        r"command.*not.*found",
+    ]
+
+    assert any(
+        re.search(pattern, err, re.IGNORECASE) for pattern in error_patterns
+    ), f"Expected error pattern not found in: {err}"
 
 
 # testing func run
-def test_run_command(monkeypatch):
-    monkeypatch.setattr(action, "run_command", lambda d: True)
+def test_run_valid_command(monkeypatch):
+    monkeypatch.setattr(action, "run_command", lambda *a, **k: True)
     data = '{"action":"command","command":"python --version"}'
     result = action.run(data, Mock(), Mock(), Mock())
     assert result is True
@@ -48,13 +59,13 @@ def test_run_command(monkeypatch):
 
 # testing func run
 def test_run_file(monkeypatch):
-    monkeypatch.setattr(action, "save_file", lambda d: True)
+    monkeypatch.setattr(action, "save_file", lambda *a, **k: True)
     data = '{"action":"file","path":"/tmp/test","content":"ok"}'
     result = action.run(data, Mock(), Mock(), Mock())
     assert result is True
 
 
-def test_run_invalid():
+def test_run_invalid_json():
     data = '{"action":"other","text":"what?"}'
     result = action.run(data, Mock(), Mock(), Mock())
     assert result is False

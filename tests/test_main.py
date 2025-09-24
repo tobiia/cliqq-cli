@@ -7,9 +7,9 @@ def test_load_template(tmp_path):
     # Create a fake template file
     file_content = "this is meant to be inside a file!"
     tfile = tmp_path / "templates" / "starter.txt"
-    tfile.parent.mkdir()
+    tfile.parent.mkdir(parents=True, exist_ok=True)
     tfile.write_text(file_content)
 
     # check file is loaded correctly
-    prepped_template = main.load_template(tfile).strip()
-    assert prepped_template == file_content
+    template = main.load_template(tfile).strip()
+    assert template == file_content

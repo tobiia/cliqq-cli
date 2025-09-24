@@ -4,7 +4,10 @@ import pytest
 # python -m pytest
 # pytest
 # pytest test_action.py
-# -v = verbose
+# pytest -v = verbose
+
+# allow printing
+# pytest -s tests/test_prep.py::test_parse_commands
 
 
 @pytest.fixture(autouse=True)

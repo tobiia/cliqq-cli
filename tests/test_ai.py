@@ -1,6 +1,5 @@
 import pytest
-from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, ANY
 
 from cliqq import ai
 
@@ -53,10 +52,10 @@ def test_load_sys_env(monkeypatch):
 
 
 def test_validate_api_success(monkeypatch):
-    monkeypatch.setattr(ai, "ping_api", lambda c: True)
-    monkeypatch.setattr(ai, "offer_save_env", lambda c, e: None)
+    monkeypatch.setattr(ai, "ping_api", lambda *a, **k: True)
+    monkeypatch.setattr(ai, "offer_save_env", lambda *a, **k: None)
     valid = ai.validate_api(
-        {"model_name": "m", "base_url": "b", "api_key": "k"}, Path("dummy")
+        config={"model_name": "m", "base_url": "b", "api_key": "k"}, env_path=Mock()
     )
     assert valid is True
 
@@ -74,7 +73,7 @@ def test_validate_api_fail(monkeypatch):
     monkeypatch.setattr(ai, "ping_api", bad_ping)
 
     valid = ai.validate_api(
-        {"model_name": "m", "base_url": "b", "api_key": "k"}, Path("dummy")
+        config={"model_name": "m", "base_url": "b", "api_key": "k"}, env_path=Mock()
     )
     assert valid is False
 
@@ -90,7 +89,14 @@ def test_ensure_api_fail(monkeypatch):
 
     monkeypatch.setattr(ai, "find_api_info", fail_find)
 
-    result = ai.ensure_api(api_config, Mock())
+    # suppress logger fixture isn't working?
+    dummy_logger = Mock()
+    monkeypatch.setattr(ai, "logger", dummy_logger)
+
+    result = ai.ensure_api(
+        env_path=Mock(),
+        api_config=api_config,
+    )
     assert result is False
 
 
@@ -115,11 +121,13 @@ def test_ai_response_success(monkeypatch):
     history.chat_history = []
     history.remember = Mock()
 
-    actionable, response_content = ai.ai_response("prompt", api_config, history, Mock())
+    actionable, response_content = ai.ai_response(
+        user_prompt="prompt", env_path=Mock(), api_config=api_config, history=history
+    )
 
     assert actionable is True
     assert response_content
-    assert response_content["text"] == "Hello world\n\x1e{1}\x1f done"
+    assert response_content["text"] == "Hello world\n{1} done"
     assert response_content["action"] == "{1}"
     history.remember.assert_any_call({"role": "user", "content": "prompt"})
-    history.remember.assert_any_call({"role": "assistant", "content": Mock.ANY})
+    history.remember.assert_any_call({"role": "assistant", "content": ANY})

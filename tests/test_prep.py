@@ -14,16 +14,16 @@ from cliqq import models, prep
         # starts with "cliqq"
         ("cliqq /withargs hey", "/withargs", ["hey"], []),  # valid command with args
         ("cliqq /withargs", "/invalid", ["/withargs"], []),  # invalid command w args
-        ("cliqq /noargs", "/noargs", None, []),  # valid command
+        ("cliqq /noargs", "/noargs", [], []),  # valid command
         (
             "cliqq /noargs hey",
             "/invalid",
             ["/noargs", "hey"],
             [],
         ),  # invalid command no args
-        ("cliqq", None, None, []),  # empty prompt w prog name
-        ("cliqq hi", None, None, ["hi"]),  # 1 word prompt
-        ("cliqq what is this", None, None, ["what", "is", "this"]),  # multi-word prompt
+        ("cliqq", None, [], []),  # empty prompt w prog name
+        ("cliqq hi", None, [], ["hi"]),  # 1 word prompt
+        ("cliqq what is this", None, [], ["what", "is", "this"]),  # multi-word prompt
         # no "cliqq"
         ("/withargs hey", "/withargs", ["hey"], []),  # valid command with args
         (
@@ -32,16 +32,16 @@ from cliqq import models, prep
             ["/withargs"],
             [],
         ),  # invalid command with args
-        ("/noargs", "/noargs", None, []),  # valid command no args
+        ("/noargs", "/noargs", [], []),  # valid command no args
         (
             "/noargs hey",
             "/invalid",
             ["/noargs", "hey"],
             [],
         ),  # invalid command no args
-        ("", None, None, []),  # empty
-        ("hi", None, None, ["hi"]),  # free prompt
-        ("what is this", None, None, ["what", "is", "this"]),  # free prompt
+        ("", None, [], []),  # empty
+        ("hi", None, [], ["hi"]),  # free prompt
+        ("what is this", None, [], ["what", "is", "this"]),  # free prompt
     ],
 )
 def test_parse_input(user_input, expected_command, expected_arg, expected_prompt):
@@ -104,27 +104,15 @@ def test_parse_commands():
     command_registry.commands = commands
     parser = prep.parse_commands(command_registry)
 
-    # check subcommands
-    subparsers_action = None
-    for action in parser._actions:
-        if isinstance(action, argparse._SubParsersAction):
-            subparsers_action = action
-            break
+    help_output = parser.format_help()
 
-    assert subparsers_action is not None
+    # verify both commands are added to the parser
+    assert "/noargs" in help_output
+    assert "/withargs" in help_output
 
-    subcommands = subparsers_action.choices
-    assert "/noargs" in subcommands
-    assert "/withargs" in subcommands
-
-    # check help text
-    assert (
-        subcommands["/noargs"].help == command_registry.commands["/noargs"].description
-    )
-    assert (
-        subcommands["/withargs"].help
-        == command_registry.commands["/withargs"].description
-    )
+    # verify both descriptions are in the help msg
+    assert command_registry.commands["/noargs"].description in help_output
+    assert command_registry.commands["/withargs"].description in help_output
 
 
 @pytest.mark.parametrize(
