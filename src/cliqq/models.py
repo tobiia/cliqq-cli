@@ -50,7 +50,6 @@ class ApiConfig:
     @base_url.setter
     def base_url(self, url: str):
         self._base_url = url
-        # credentials changed, invalidate cached client
         self._client = None
 
     @property
@@ -60,8 +59,20 @@ class ApiConfig:
     @api_key.setter
     def api_key(self, key: str):
         self._api_key = key
-        # credentials changed, invalidate cached client
         self._client = None
+
+    @property
+    def client(self):
+        if self._client is None:
+            # import here to avoid importing during tests that don't need it
+            import openai
+
+            self._client = openai.OpenAI(api_key=self._api_key, base_url=self._base_url)
+        return self._client
+
+    @client.setter
+    def client(self, client):
+        self._client = client
 
     # for updating everything at once for ease
     def set_config(self, config: dict[str, str]):
@@ -70,14 +81,6 @@ class ApiConfig:
         self._api_key = config["api_key"]
         # clear any cached client so it will be recreated with new credentials
         self._client = None
-
-    def get_client(self):
-        if self._client is None:
-            # import here to avoid importing during tests that don't need it
-            import openai
-
-            self._client = openai.OpenAI(api_key=self._api_key, base_url=self._base_url)
-        return self._client
 
 
 class ChatHistory:
