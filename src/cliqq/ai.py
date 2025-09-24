@@ -7,10 +7,7 @@ import openai
 
 from cliqq.log import logger
 from cliqq.io import program_output, user_input, program_choice
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from cliqq.models import ApiConfig, ChatHistory
+from cliqq.models import ApiConfig, ChatHistory
 
 API_ERROR_MESSAGES = {
     openai.AuthenticationError: "API information validation failed: invalid API key",

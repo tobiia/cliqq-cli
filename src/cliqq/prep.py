@@ -4,10 +4,7 @@ import re
 import psutil
 import argparse
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from cliqq.models import CommandRegistry
+from cliqq.models import CommandRegistry
 
 
 # usage

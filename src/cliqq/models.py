@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Callable, Optional, Any
 from dataclasses import dataclass
 
-
 # should maybe use dependency injection (FastAPI) or contextvars (Flask)...
 
 

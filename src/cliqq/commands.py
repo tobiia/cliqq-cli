@@ -3,20 +3,18 @@ import os
 import sys
 import logging
 import inspect
-from typing import NoReturn, TYPE_CHECKING
+from typing import NoReturn
 
 from cliqq.log import logger
 from cliqq.io import program_output
 from cliqq.action import run_command
-
-if TYPE_CHECKING:
-    from cliqq.models import (
-        Command,
-        ApiConfig,
-        ChatHistory,
-        CommandRegistry,
-        PathManager,
-    )
+from cliqq.models import (
+    Command,
+    ApiConfig,
+    ChatHistory,
+    CommandRegistry,
+    PathManager,
+)
 
 
 def help(command_registry: CommandRegistry) -> None:

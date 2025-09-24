@@ -9,7 +9,6 @@
 import shlex
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from cliqq.prep import prep_prompt, parse_commands, parse_input
 from cliqq.commands import dispatch, exit_cliqq, register_commands
@@ -17,9 +16,7 @@ from cliqq.ai import ai_response
 from cliqq.action import run
 from cliqq.log import logger
 from cliqq.io import program_output, user_input
-
-if TYPE_CHECKING:
-    from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
+from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
 
 
 # NOTE: for when this is a pip-installable package

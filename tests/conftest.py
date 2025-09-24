@@ -1,6 +1,7 @@
 import logging
 import pytest
 
+# python -m pytest
 # pytest
 # pytest test_action.py
 # -v = verbose
