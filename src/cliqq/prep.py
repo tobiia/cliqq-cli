@@ -104,38 +104,3 @@ def parse_action(action_str: str) -> dict[str, str] | None:
     except json.JSONDecodeError as e:
         logger.exception("Unable to parse actionable: %s", e)
         return None
-
-
-# ARGPARSE --> when adding more commands, some examples:
-"""
-    ex. for flag args
-    change api key --> would probs update .env and/or sys envars, repeat for model and url
-    name = what user sees, dest = var name which defaults to name
-    parser.add_argument(
-        "--key", 
-        "--api-key",
-        nargs=1,
-        help="change api key",
-        dest="key",
-    )
-    cliqq --key sk-s7gd8
-    args.key = [sk-s7gd8]    (won't be in a list if you don't specify nargs) 
-"""
-
-"""
-    cliqq api beepo-8 www.beep.com sk-s7gd8 --> error if you don't put all 3
-    ways to implement the above:
-    subparser.add_argument(
-        "api",
-        nargs=3,
-        metavar=("model_name", "base_url", "api_key"),
-        help="Set API credentials immediately.",
-    )
-        args.api = [model_name, base_url, api_key]
-        you can use nargs="*" for above or ="?" below if you want to allow less and have it match
-    OR
-    subparser.add_argument("model_name", help="The model name")
-    subparser.add_argument("base_url", help="The API base URL")
-    subparser.add_argument("api_key", help="The API key")
-        args.model_name --> for all, order is guarenteed
-"""
