@@ -72,7 +72,7 @@ def clear_context(history: ChatHistory) -> None:
 
 
 def quick_response(
-    args, api_config: ApiConfig, history: ChatHistory, paths: PathManager
+    args: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
 ) -> None:
     from cliqq.ai import ai_response
 
@@ -108,7 +108,8 @@ def dispatch(
     # if this Command takes positional arguments
     if command.args:
         # currently all commands only take one, alter if future commands need more
-        kwargs["args"] = user_input.args
+        arguments = " ".join(user_input.args)
+        kwargs["args"] = arguments
 
     func(**kwargs)
 

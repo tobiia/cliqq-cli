@@ -30,7 +30,7 @@ def run(
 
     action_type = data.get("action")
     if action_type == "command":
-        return run_command(data["command"], paths.env_path, api_config, history)
+        return run_command(data["command"], api_config, history, paths)
     elif action_type == "file":
         return save_file(data)
     else:
@@ -50,9 +50,9 @@ def parse_actionable(actionable: str) -> dict[str, str] | None:
 # args = command as a str, just called args so commands.dispatch works
 def run_command(
     args: str,
-    env_path: Path,
     api_config: ApiConfig,
     history: ChatHistory,
+    paths: PathManager,
     ask: bool = True,
 ) -> bool:
 
@@ -99,7 +99,7 @@ def run_command(
         )
 
     if ask:
-        offer_analyze_output(stdout, env_path, api_config, history)
+        offer_analyze_output(stdout, paths.env_path, api_config, history)
 
     return code == 0
 
