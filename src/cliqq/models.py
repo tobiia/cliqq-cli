@@ -7,6 +7,14 @@ from dataclasses import dataclass
 # should maybe use dependency injection (FastAPI) or contextvars (Flask)...
 
 
+# an extremely hacky solution to get argparse to do what I want
+# i will remove argparse entirely soon...
+class QuietArgParser(argparse.ArgumentParser):
+    def error(self, message):
+        # Instead of printing + sys.exit, just raise an exception we can catch
+        raise ValueError(message)
+
+
 @dataclass(frozen=True)
 class Command:
     name: str
@@ -111,8 +119,6 @@ class PathManager:
         self._log_path = Path(config.get("log", home / "cliqq.log")).expanduser()
 
         self._env_path = Path(config.get("env", home / ".env")).expanduser()
-
-        self.create_paths()
 
     # func marked @property is the getter
     @property

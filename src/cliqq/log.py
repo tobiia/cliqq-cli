@@ -1,15 +1,22 @@
 import logging
 import os
 import sys
+from pathlib import Path
 
 
 # can use MemoryHandler instead?
 class BufferingFileHandler(logging.Handler):
     def __init__(self, filename: str, buffer_size: int = 10):
         super().__init__()
-        self._filename = filename
         self._buffer_size = buffer_size
         self._buffer: list[str] = []
+
+        home = Path("~/.cliqq").expanduser()
+        home.mkdir(parents=True, exist_ok=True)
+
+        self._filename = home / filename
+
+        self._filename.touch(exist_ok=True)
 
     # log info is passed around in LogRecord instances
     def emit(self, record: logging.LogRecord):
@@ -21,7 +28,6 @@ class BufferingFileHandler(logging.Handler):
     def flush(self):
         if not self._buffer:
             return
-        os.makedirs(os.path.dirname(self._filename), exist_ok=True)
         log_text = "".join(self._buffer)
         with open(self._filename, "a", encoding="utf-8") as f:
             f.write(log_text)
@@ -39,10 +45,13 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 def setup_logging() -> logging.Logger:
     logger = logging.getLogger("cliqq")
-    # root logger setup
-    logging.basicConfig(encoding="utf-8", level=logging.DEBUG)  # catch all
+    logger.propagate = False  # don’t bubble up to root logger
 
-    debug_handler = BufferingFileHandler("debug.log", 3)
+    # clear any existing handlers (was causing issues while testing)
+    if logger.handlers:
+        logger.handlers.clear()
+
+    debug_handler = BufferingFileHandler("debug.log", 1)
     debug_handler.setFormatter(
         logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     )
