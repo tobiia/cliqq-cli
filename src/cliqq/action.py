@@ -186,7 +186,7 @@ def resolve_conflict(path: Path, content: str) -> bool:
         write_file(path, content, overwrite=True)
         return True
     else:
-        # FIXME allow user to dscard file here
+        # FIXME allow user to discard file here
         program_output(
             "Okay, please provide a different name for the file.",
             style_name="action",

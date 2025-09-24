@@ -167,12 +167,15 @@ def prompt_api_info() -> dict[str, str]:
     return config
 
 
-def validate_api(config: dict[str, str], env_path: Path) -> bool:
+def validate_api(
+    config: dict[str, str], env_path: Path, source: str = "prompt"
+) -> bool:
     try:
         if ping_api(config):
-            # FIXME fires even if i have environ configured
-            offer_save_env(config, env_path)
+            if source == "prompt":
+                offer_save_env(config, env_path)
             return True
+
     except openai.AuthenticationError as e:
         logger.exception("AuthenticationError, likely invalid API key: %s", e)
     except openai.BadRequestError as e:
@@ -222,9 +225,14 @@ def save_env_file(config: dict[str, str], env_path: Path) -> bool:
 def find_api_info(env_path: Path) -> dict[str, str]:
     config = {}
 
-    for loader in (lambda: load_env_file(env_path), load_sys_env, prompt_api_info):
-        config = loader()
-        if config and validate_api(config, env_path):
+    for loader in (
+        ("env", lambda: load_env_file(env_path)),
+        ("sys", load_sys_env),
+        ("prompt", prompt_api_info),
+    ):
+        source, func = loader
+        config = func()
+        if config and validate_api(config, env_path, source):
             return config
 
     raise ValueError()
