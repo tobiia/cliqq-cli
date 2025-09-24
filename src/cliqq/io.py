@@ -36,17 +36,34 @@ def program_choice(question: str, choices: list, log: bool = True) -> str:
 
 
 def program_output(
-    text: str, end: str = "\n", style_name: str = "program", log: bool = True
+    text: str,
+    end: str = "\n",
+    style_name: str = "program",
+    continuous: bool = False,
+    log: bool = True,
 ):
-    formatted_text = [
-        ("class:name", "(cliqq) "),
-        (f"class:{style_name}", text),
-    ]
+
+    if continuous:
+        message = FormattedText(
+            [
+                ("class:" + style_name, text),
+            ]
+        )
+        plain_text = to_plain_text(message[0][1])
+
+    else:
+        message = FormattedText(
+            [
+                ("class:name", "(cliqq) "),
+                ("class:" + style_name, text),
+            ]
+        )
+        plain_text = to_plain_text(message[1][1])
 
     if log:
         if end:
-            logger.info(f"{formatted_text[0][1]}{text}{end}")
+            logger.info(f"{plain_text}{text}{end}")
         else:
-            logger.info(formatted_text[0][1] + text)
+            logger.info(plain_text + text)
 
-    print_formatted_text(formatted_text, style=DEFAULT_STYLE, end=end, flush=True)
+    print_formatted_text(message, style=DEFAULT_STYLE, end=end, flush=True)
