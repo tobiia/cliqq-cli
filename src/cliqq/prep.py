@@ -60,9 +60,14 @@ def parse_input(
             ns = argparse.Namespace(command="/invalid", args=tokens, prompt=[])
         else:
             ns = argparse.Namespace(command=None, prompt=tokens)
-    # ensure .args always exists
-    if not hasattr(ns, "args"):
-        ns.args = []
+
+    # NORMALIZATION ==> want a consistent structure
+    # ensure .args and .prompt always exists
+    setattr(ns, "args", getattr(ns, "args", []))
+    setattr(ns, "prompt", getattr(ns, "prompt", []))
+    # should only have empty [] rather than [""]
+    ns.prompt = [x for x in ns.prompt if x] if ns.prompt else []
+
     return ns
 
 
