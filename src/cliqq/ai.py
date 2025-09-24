@@ -42,10 +42,17 @@ def ai_response(
 
         # generator
         # tool_calls and function_call to separate some content like action?
+        # reuse a cached client when possible to avoid recreating connection pools
+        try:
+            client = api_config.get_client()
+        except Exception:
+            client = None
+
         deltas = stream_chunks(
             api_config.model_name,
             api_config.base_url,
             api_config.api_key,
+            client,
             history.chat_history,
         )
 
@@ -81,9 +88,15 @@ def ai_response(
 
 
 def stream_chunks(
-    model_name: str, base_url: str, api_key: str, chat_history: list[dict[str, str]]
+    model_name: str,
+    base_url: str,
+    api_key: str,
+    cached_client,
+    chat_history: list[dict[str, str]],
 ):
-    client = openai.OpenAI(api_key=api_key, base_url=base_url)
+
+    if cached_client is None:
+        client = openai.OpenAI(api_key=api_key, base_url=base_url)
 
     with client.chat.completions.create(
         model=model_name,
@@ -96,17 +109,27 @@ def stream_chunks(
                 # accumulate the content, print until end of content or recieve actionable
                 delta = str(chunk.choices[0].delta.content)
                 yield delta
-            if chunk.choices[0].finish_reason == "stop":
-                break  # stop if the finish reason is 'stop
+            if chunk.choices[0].finish_reason == "stop" == "stop":
+                break
 
 
-def buffer_deltas(deltas: Iterable[str]):
-    buffer = []
+def buffer_deltas(deltas: Iterable[str], max_count: int = 5, max_chars: int = 200):
+    """Batch incoming deltas into strings.
+
+    Flush when either `max_count` chunks are accumulated or the total
+    character length of the buffered chunks exceeds `max_chars`.
+    """
+    buffer: list[str] = []
+    buffered_chars = 0
+
     for delta in deltas:
         buffer.append(delta)
-        if len(buffer) >= 5:  # magic number?
+        buffered_chars += len(delta)
+
+        if len(buffer) >= max_count or buffered_chars >= max_chars:
             yield "".join(buffer)
             buffer.clear()
+            buffered_chars = 0
 
     if buffer:
         yield "".join(buffer)
@@ -276,7 +299,7 @@ def ensure_api(env_path: Path, api_config: ApiConfig) -> bool:
 
     program_output(
         "Your API credentials are not configured. Let's set those up now!",
-        style_name="error",
+        style_name="action",
     )
 
     try:

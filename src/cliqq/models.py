@@ -28,6 +28,7 @@ class ApiConfig:
         self._model_name: str = ""
         self._base_url: str = ""
         self._api_key: str = ""
+        self._client = None
 
     # func marked @property is the getter
     # properties good for validation + changing attrib access w/o changing public API
@@ -39,6 +40,8 @@ class ApiConfig:
     @model_name.setter
     def model_name(self, name: str):
         self._model_name = name
+        # credentials changed, invalidate cached client
+        self._client = None
 
     @property
     def base_url(self) -> str:
@@ -47,6 +50,8 @@ class ApiConfig:
     @base_url.setter
     def base_url(self, url: str):
         self._base_url = url
+        # credentials changed, invalidate cached client
+        self._client = None
 
     @property
     def api_key(self) -> str:
@@ -55,12 +60,24 @@ class ApiConfig:
     @api_key.setter
     def api_key(self, key: str):
         self._api_key = key
+        # credentials changed, invalidate cached client
+        self._client = None
 
     # for updating everything at once for ease
     def set_config(self, config: dict[str, str]):
         self._model_name = config["model_name"]
         self._base_url = config["base_url"]
         self._api_key = config["api_key"]
+        # clear any cached client so it will be recreated with new credentials
+        self._client = None
+
+    def get_client(self):
+        if self._client is None:
+            # import here to avoid importing during tests that don't need it
+            import openai
+
+            self._client = openai.OpenAI(api_key=self._api_key, base_url=self._base_url)
+        return self._client
 
 
 class ChatHistory:
