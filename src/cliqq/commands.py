@@ -76,7 +76,6 @@ def quick_response(
 ) -> None:
     from cliqq.ai import ai_response
 
-    # FIXME args might be a list...
     ai_response(args, paths.env_path, api_config, history)
     print("\n")
     exit_cliqq()

@@ -9,11 +9,12 @@
 import shlex
 import sys
 from pathlib import Path
+import json
 
 from cliqq.log import logger
 from cliqq.io import program_choice, program_output, user_input
 from cliqq.models import ApiConfig, ChatHistory, CommandRegistry, PathManager
-from cliqq.prep import prep_prompt, parse_commands, parse_input
+from cliqq.prep import parse_action, prep_prompt, parse_commands, parse_input
 from cliqq.commands import dispatch, exit_cliqq, register_commands
 from cliqq.ai import ai_response
 from cliqq.action import run
@@ -116,6 +117,7 @@ def main() -> None:
         parsed_input = parse_input(tokens, parser)
 
         if parsed_input.command:
+            # FIXME i think this tries to get flags even if they're ok...
             if parsed_input.command == "/invalid":
                 program_output(
                     "You have entered a command incorrectly. Type just '/help' to learn more.",
@@ -134,16 +136,41 @@ def main() -> None:
         if input:
             user_prompt = prep_prompt(input, template)
 
-            actionable, response_content = ai_response(
+            action_str, response = ai_response(
                 user_prompt, paths.env_path, api_config, history
             )
             print("\n")
 
-            if response_content:
+            if response:
 
-                if actionable:
+                if action_str:
 
-                    action = response_content["action"]  # json
+                    action = parse_action(action_str)
+
+                    if action:
+
+                        action_type = action.get("type")
+
+                        if action_type == "command":
+                            cmd = action.get("command")
+                            program_output(cmd, end="", style_name="action")
+                        elif action_type == "file":
+                            file_path = action.get("path")
+                            program_output(
+                                f"Saved file: {file_path}", end="", style_name="action"
+                            )
+                        else:
+                            # rejection handled by action module
+                            program_output(
+                                f"Action: {action_type}", end="", style_name="action"
+                            )
+                    else:
+                        # json error
+                        program_output(
+                            "Sorry, I got confused and can't complete your request!\nDo you have another one for me?",
+                            style_name="error",
+                        )
+                        continue
 
                     choices = [
                         ("yes", "Yes"),
@@ -159,7 +186,7 @@ def main() -> None:
                         )
                     else:
                         program_output(
-                            "I'm sorry I couldn't complete your request. Do you have another one for me?"
+                            "Sorry I couldn't complete your request. Do you have another one for me?"
                         )
                 else:
                     # maybe have a bank of different wording for this?

@@ -1,9 +1,10 @@
 import os
 import sys
-import re
+import json
 import psutil
 import argparse
 from pathlib import Path
+from cliqq.log import logger
 from cliqq.models import CommandRegistry, QuietArgParser
 
 
@@ -95,6 +96,14 @@ def prep_prompt(prompt: str, template: str) -> str:
     prompt_template = prompt_template.replace("<CWD>", safe_cwd)
     prompt_template = prompt_template.replace("<QUESTION>", prompt)
     return prompt_template
+
+
+def parse_action(action_str: str) -> dict[str, str] | None:
+    try:
+        return json.loads(action_str)
+    except json.JSONDecodeError as e:
+        logger.exception("Unable to parse actionable: %s", e)
+        return None
 
 
 # ARGPARSE --> when adding more commands, some examples:

@@ -16,35 +16,20 @@ CONFIRM_FIRST = [t.lower() for t in RULES["CONFIRM_FIRST"]]
 
 
 def run(
-    actionable: str, api_config: ApiConfig, history: ChatHistory, paths: PathManager
+    action: dict[str, str],
+    api_config: ApiConfig,
+    history: ChatHistory,
+    paths: PathManager,
 ) -> bool:
 
-    data = parse_actionable(actionable)
-
-    if not data:
-        program_output(
-            "Something went wrong with my response and I can't parse it. Please ask me again!",
-            style_name="error",
-        )
-        return False
-
-    action_type = data.get("action")
+    action_type = action.get("action")
     if action_type == "command":
-        return run_command(data["command"], api_config, history, paths)
+        return run_command(action["command"], api_config, history, paths)
     elif action_type == "file":
-        return save_file(data)
+        return save_file(action)
     else:
-        program_output(f"Invalid action: {data}", style_name="error")
+        program_output(f"Invalid action: {action}", style_name="error")
         return False
-
-
-def parse_actionable(actionable: str) -> dict[str, str] | None:
-    """Parse actionable JSON safely. Return dict or None on failure."""
-    try:
-        return json.loads(actionable)
-    except json.JSONDecodeError as e:
-        logger.exception("Unable to parse actionable: %s", e)
-        return None
 
 
 # args = command as a str, just called args so commands.dispatch works

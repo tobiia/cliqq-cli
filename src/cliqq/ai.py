@@ -1,8 +1,9 @@
 import os
 import re
 from pathlib import Path
-from dotenv import dotenv_values
 from typing import Iterable
+from dotenv import dotenv_values
+import json
 import openai
 
 from cliqq.log import logger
@@ -22,7 +23,7 @@ def ai_response(
     env_path: Path,
     api_config: ApiConfig,
     history: ChatHistory,
-) -> tuple[bool, dict[str, str]] | tuple[bool, None]:
+) -> tuple[str | None, str]:
 
     try:
 
@@ -35,19 +36,14 @@ def ai_response(
                 f"I'm sorry, I cannot process your request! Please verify your API credentials and update your {env_path} and/or your system environment variables. If you need further guidance, please refer to the README.md.",
                 style_name="error",
             )
-            return False, None
+            return None, ""
 
-        actionable = False
-        response_content = {"text": "", "action": ""}
-
-        # generator
-        # tool_calls and function_call to separate some content like action?
-        # reuse a cached client when possible to avoid recreating connection pools
         try:
             client = api_config.get_client()
         except Exception:
             client = None
 
+        # generator
         deltas = stream_chunks(
             api_config.model_name,
             api_config.base_url,
@@ -58,37 +54,55 @@ def ai_response(
 
         raw_accum = []
 
-        # FIXME avoid showing the delimiters and such
-        # also generator
-        for delta in buffer_deltas(deltas):
-            raw_accum.append(delta)
-            program_output(delta, end="", style_name="info", continuous=True, log=False)
+        for delta, flush in buffer_deltas(deltas):
+            if delta is not None:
+                raw_accum.append(delta)
+            if flush:
+                program_output(flush, end="", style_name="info", continuous=True)
 
-        raw_full_text = "".join(raw_accum)  # full raw text with markers
-
-        action = extract_action(raw_full_text)
-
-        if action:
-            program_output(action, end="", style_name="action")
-            actionable = True
-            response_content["action"] = action
+        raw_full_text = "".join(raw_accum)
 
         clean_full_text = re.sub(r"[\x1e\x1f]+", "", raw_full_text)
 
-        response_content["text"] = clean_full_text
-
-        # AI will remember raw text so it remembers the format needed
+        # AI recieves raw text so it remembers the format needed
         history.remember({"role": "assistant", "content": raw_full_text})
-
         # log the full cleaned text
         logger.info(clean_full_text)
 
-        return actionable, response_content
+        action = extract_action(raw_full_text)
+
+        return action, clean_full_text
 
     except Exception as e:
         logger.exception("Unexpected error: %s", e)
         program_output(f"Unexpected error: {e}", style_name="error")
-        return False, None
+        return None, ""
+
+
+def strip_visible(delta: str, inside: bool) -> tuple[str, bool]:
+    out_parts: list[str] = []
+    i = 0
+    start_tag = "\x1e"
+    end_tag = "\x1f"
+    while i < len(delta):
+        if not inside:
+            j = delta.find(start_tag, i)
+            if j == -1:
+                # delta doesn't contain delimiter
+                out_parts.append(delta[i:])
+                break
+            out_parts.append(delta[i:j])
+            i = j + len(start_tag)
+            inside = True
+        else:
+            j = delta.find(end_tag, i)
+            if j == -1:
+                # actionable continues beyond this chunk
+                i = len(delta)
+                break
+            i = j + len(end_tag)
+            inside = False
+    return ("".join(out_parts), inside)
 
 
 def stream_chunks(
@@ -99,8 +113,11 @@ def stream_chunks(
     chat_history: list[dict[str, str]],
 ):
 
-    if cached_client is None:
-        client = openai.OpenAI(api_key=api_key, base_url=base_url)
+    client = (
+        cached_client
+        if cached_client is not None
+        else openai.OpenAI(api_key=api_key, base_url=base_url)
+    )
 
     with client.chat.completions.create(
         model=model_name,
@@ -117,28 +134,6 @@ def stream_chunks(
                 break
 
 
-def buffer_deltas(deltas: Iterable[str], max_count: int = 5, max_chars: int = 200):
-    """Batch incoming deltas into strings.
-
-    Flush when either `max_count` chunks are accumulated or the total
-    character length of the buffered chunks exceeds `max_chars`.
-    """
-    buffer: list[str] = []
-    buffered_chars = 0
-
-    for delta in deltas:
-        buffer.append(delta)
-        buffered_chars += len(delta)
-
-        if len(buffer) >= max_count or buffered_chars >= max_chars:
-            yield "".join(buffer)
-            buffer.clear()
-            buffered_chars = 0
-
-    if buffer:
-        yield "".join(buffer)
-
-
 def extract_action(text: str) -> str | None:
     start_tag, end_tag = "\x1e", "\x1f"
     start = text.find(start_tag)
@@ -148,6 +143,27 @@ def extract_action(text: str) -> str | None:
         action = text[start + len(start_tag) : end]
         return action.strip()
     return None
+
+
+def buffer_deltas(deltas: Iterable[str], max_count: int = 5, max_chars: int = 200):
+    inside_flag = False
+    visible_buffer: list[str] = []
+    visible_chars = 0
+
+    for delta in deltas:
+        visible_piece, inside_flag = strip_visible(delta, inside_flag)
+        if visible_piece:
+            visible_buffer.append(visible_piece)
+            visible_chars += len(visible_piece)
+
+        if len(visible_buffer) >= max_count or visible_chars >= max_chars:
+            visible_buffer.clear()
+            visible_chars = 0
+
+        yield delta, "".join(visible_buffer)
+
+    if visible_buffer:
+        yield None, "".join(visible_buffer)
 
 
 def prompt_api_info() -> dict[str, str]:
