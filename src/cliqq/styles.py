@@ -8,16 +8,14 @@ in the Cliqq CLI (e.g., user input, program output, errors).
 
 DEFAULT_STYLE = Style.from_dict(
     {
-        # default
-        "": "#91a9f9",
-        # Prompt.
-        "user": "#91a9f9 bold",  # user prompt
-        "name": "#ad70f7 bold",  # (cliqq)
-        "program": "#ad70f7",  # default program print
-        "info": "#d5b9f8",
-        "action": "#71aabd",
-        "error": "#e3915e",
-        "input-selection": "#71aabd",
+        "": "#f8f8f2",
+        "user": "#8be9fd bold",
+        "name": "#bd93f9 bold",
+        "program": "#f8f8f2",
+        "info": "#50fa7b",
+        "action": "#ff79c6",
+        "error": "#ff5555 bold",
+        "input-selection": "#ffb86c",
         "selected-option": "underline bold",
     }
 )

@@ -56,11 +56,19 @@ def ai_response(
         for delta in buffer_output(deltas):
             # delimiter = flush immediately and stop
             raw_accum.append(delta)
-            if "\x1e" in delta:
+
+            if "\x1e" in delta or "\\x1e" in delta:
                 output = False
+
             if output:
+                clean_delta = (
+                    delta.replace("\x1e", "")
+                    .replace("\x1f", "")
+                    .replace("\\x1e", "")
+                    .replace("\\x1f", "")
+                )
                 program_output(
-                    delta, end="", style_name="info", continuous=True, log=False
+                    clean_delta, end="", style_name="info", continuous=True, log=False
                 )
 
         raw_full_text = "".join(raw_accum)
@@ -375,11 +383,6 @@ def ensure_api(env_path: Path, api_config: ApiConfig) -> bool:
     if api_config.model_name and api_config.base_url and api_config.api_key:
         # don't validate again b/c if these have been set, the user must've made a valid call before
         return True
-
-    program_output(
-        "Your API credentials are not configured. Let's set those up now!",
-        style_name="action",
-    )
 
     try:
         config = find_api_info(env_path)

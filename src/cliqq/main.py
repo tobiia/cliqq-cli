@@ -1,15 +1,7 @@
-# cd cliqq-cli
-# pip install -e .
-# don't forget the . !!
-
-# cd src
-# python -m cliqq
-# for local
+# pip install -e . --> from project root
 
 import shlex
 import sys
-from pathlib import Path
-import json
 
 from cliqq.log import logger
 from cliqq.io import program_choice, program_output, user_input
@@ -63,11 +55,12 @@ def main() -> None:
     history.remember({"role": "system", "content": template})
     template = load_template(paths.script_path / "templates" / "reminder_template.txt")
 
-    # check for if program was invoked with a command
     # build the parser once and reuse it in the interactive loop
     parser = parse_commands(registry)
     # store parser on session so help cmd can access it
     registry.parser = parser
+
+    # parse arguments when program is run from the command line
 
     parsed_input = parse_input(sys.argv, parser)
 
@@ -104,6 +97,7 @@ def main() -> None:
         input = user_input().strip()
 
     # interactive mode below
+
     while input not in ("exit", "/exit"):
 
         tokens = shlex.split(input)
@@ -125,8 +119,6 @@ def main() -> None:
             # treat all words written by user as an AI prompt
             input = " ".join(parsed_input.prompt)
 
-        # most console output is handled within functions
-
         if input:
             user_prompt = prep_prompt(input, template)
 
@@ -147,16 +139,16 @@ def main() -> None:
 
                         if action_type == "command":
                             cmd = action.get("command")
-                            program_output(cmd, end="", style_name="action")
+                            program_output(cmd, style_name="action")
                         elif action_type == "file":
                             file_path = action.get("path")
                             program_output(
-                                f"Saved file: {file_path}", end="", style_name="action"
+                                f"Saved file: {file_path}", style_name="action"
                             )
                         else:
                             # rejection handled by action module
                             program_output(
-                                f"Action: {action_type}", end="", style_name="action"
+                                f"Action: {action_type}", style_name="action"
                             )
                     else:
                         # json error

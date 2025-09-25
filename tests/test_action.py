@@ -1,4 +1,3 @@
-import pytest
 import re
 from unittest.mock import Mock
 from cliqq import action
@@ -30,7 +29,7 @@ def test_execute_command_notfound():
 # testing func run
 def test_run_valid_command(monkeypatch):
     monkeypatch.setattr(action, "run_command", lambda *a, **k: True)
-    data = {"action": "command", "command": "cd"}
+    data = {"type": "command", "command": "cd"}
     result = action.run(data, Mock(), Mock(), Mock())
     assert result is True
 
@@ -38,7 +37,7 @@ def test_run_valid_command(monkeypatch):
 # testing func run
 def test_run_file(monkeypatch):
     monkeypatch.setattr(action, "save_file", lambda *a, **k: True)
-    data = {"action": "file", "path": "/tmp/test", "content": "ok"}
+    data = {"type": "file", "path": "/tmp/test", "content": "ok"}
     result = action.run(data, Mock(), Mock(), Mock())
     assert result is True
 
