@@ -62,19 +62,6 @@ def parse_input(
         argparse.Namespace: Parsed and normalized namespace.
     """
 
-    # FIXME remove when package
-    cleaned = []
-    for t in tokens:
-        if not t:  # skip empty
-            continue
-        # strip away things like `cliqq`, `cliqq.exe`, `python`, `-m`, or file paths ending in .py
-        if t in {"cliqq", "python", "python.exe", "-m"}:
-            continue
-        if t.endswith(".py") or t.endswith("__main__.py"):
-            continue
-        cleaned.append(t)
-    tokens = cleaned
-
     # removing "cliqq" b/c argparse will interpret it as a command (prog)
     if len(tokens) > 0 and tokens[0] == "cliqq":
         tokens = tokens[1:]
