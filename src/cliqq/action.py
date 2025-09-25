@@ -21,6 +21,7 @@ def run(
     history: ChatHistory,
     paths: PathManager,
 ) -> bool:
+    """Dispatches `action` to the appropriate hander"""
 
     action_type = action.get("type")
     if action_type == "command":
@@ -32,7 +33,6 @@ def run(
         return False
 
 
-# args = command as a str, just called args so commands.dispatch works
 def run_command(
     args: str,
     api_config: ApiConfig,
@@ -40,6 +40,7 @@ def run_command(
     paths: PathManager,
     ask: bool = True,
 ) -> bool:
+    """Coordinates the check and execution of a given command"""
 
     # for clarity
     command = args
@@ -90,6 +91,8 @@ def run_command(
 
 
 def execute_command(command: str) -> tuple[int, str, str]:
+    """Runs a command"""
+
     try:
         cmd = shlex.split(command)
 
@@ -105,6 +108,7 @@ def execute_command(command: str) -> tuple[int, str, str]:
 
 
 def classify_command(command: str) -> str:
+    """Classifies and returns the danger level/status of a command"""
     lowered = command.lower()
     if any(token in lowered for token in DENY_ALWAYS):
         return "deny"
@@ -116,6 +120,8 @@ def classify_command(command: str) -> str:
 def offer_analyze_output(
     stdout: str, env_path: Path, api_config: ApiConfig, history: ChatHistory
 ) -> None:
+    """Retrieves user input as to whether stdout from command execution
+    should be sent and analyzed by the AI"""
     choices = [
         ("yes", "Yes"),
         ("no", "No"),
@@ -131,11 +137,19 @@ def offer_analyze_output(
 
 
 def save_file(file: dict[str, str], overwrite: bool = False) -> bool:
-    # file is in json format
+    """Coordinates saving a given file
+
+    Args:
+        file:
+            a dictionary containing "path" and "content" keys
+        overwrite:
+            If True user and a file with the given path already
+            exists, the file is overwritten
+    """
+
     path = Path(file["path"]).expanduser()
     content = file["content"]
 
-    # ensure the directory exists
     path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -145,7 +159,7 @@ def save_file(file: dict[str, str], overwrite: bool = False) -> bool:
     except FileExistsError:
         return resolve_conflict(path, content)
     except IOError as e:
-        logger.exception(e)
+        logger.exception("IOError: Error while saving file\n%s", e)
         return False
 
 
@@ -160,6 +174,7 @@ def write_file(path: Path, content: str, overwrite: bool = False):
 
 
 def resolve_conflict(path: Path, content: str) -> bool:
+    """Resolves file saving conflicts with user prompting"""
 
     choices = [("yes", "Yes"), ("no", "No")]
     user_choice = program_choice(

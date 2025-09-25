@@ -42,13 +42,13 @@ def show_log(paths: PathManager) -> None:
             program_output(log, style_name="action")
             program_output("--------- end of log ---------", style_name="action")
     except FileNotFoundError:
-        program_output("The log is empty!", style_name="error")
+        program_output("The log is empty!", style_name="action")
         # create log if it doesn't exist, probably redundant but check
         f = open(paths.log_path, "a", encoding="utf-8")
         f.close()
     except IOError as e:
-        program_output(f"Error reading log file: {e}", style_name="error")
-        raise IOError(f"IOError, error reading log file: {e}")
+        program_output("Error reading log file", style_name="error")
+        logger.exception("IOError: Error while reading log file\n%s", e)
 
 
 def clear_log(paths: PathManager) -> None:
@@ -59,8 +59,8 @@ def clear_log(paths: PathManager) -> None:
             f.write("")
         program_output("Chat log cleared, let's start fresh!", style_name="action")
     except IOError as e:
-        program_output(f"Error clearing log file: {e}", style_name="error")
-        raise IOError(f"IOError, error reading log file: {e}")
+        program_output("Error clearing log file", style_name="error")
+        logger.exception("IOError: Error while clearing log file\n%s", e)
 
 
 def clear_context(history: ChatHistory, paths: PathManager) -> None:

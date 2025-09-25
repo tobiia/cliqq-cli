@@ -7,16 +7,17 @@ from dataclasses import dataclass
 # should maybe use dependency injection (FastAPI) or contextvars (Flask)...
 
 
-# an extremely hacky solution to get argparse to do what I want
-# i will remove argparse entirely soon...
-class QuietArgParser(argparse.ArgumentParser):
-    def error(self, message):
-        # Instead of printing + sys.exit, just raise an exception we can catch
-        raise ValueError(message)
-
-
 @dataclass(frozen=True)
 class Command:
+    """Represents a CLI command.
+
+    Attributes:
+        name (str): Command name (e.g., "/help").
+        description (str): Help text for the command.
+        function (Callable): Function that implements the command.
+        args (str, optional): Description of command arguments, if any.
+    """
+
     name: str
     description: str
     function: Callable[..., Any]
@@ -24,6 +25,8 @@ class Command:
 
 
 class ApiConfig:
+    """Holds and manages API credentials and OpenAI client configuration."""
+
     def __init__(self):
         self._model_name: str = ""
         self._base_url: str = ""
@@ -84,6 +87,8 @@ class ApiConfig:
 
 
 class ChatHistory:
+    """Stores and manages conversation history for the session."""
+
     def __init__(self):
         self._chat_history: list[dict[str, str]] = []
 
@@ -100,6 +105,8 @@ class ChatHistory:
 
 
 class CommandRegistry:
+    """Registry for available CLI commands and their parser."""
+
     def __init__(self):
         self._parser: argparse.ArgumentParser = argparse.ArgumentParser()
         self.commands: dict[str, Command] = {}
@@ -120,6 +127,8 @@ class CommandRegistry:
 
 
 class PathManager:
+    """Resolves and manages key file paths for configuration, logs, and environment files."""
+
     def __init__(self):
         config_path = Path("~/.cliqq/config.json").expanduser()
         if config_path.exists():
@@ -131,14 +140,11 @@ class PathManager:
         self._script_path = Path(__file__).parent
 
         home = Path(config.get("home", "~/.cliqq")).expanduser()
+
         self._home_path = home
-
-        # Path contruct again just in case, probs not necessary
-        self._debug_path = Path(config.get("debug", home / "debug.log")).expanduser()
-
-        self._log_path = Path(config.get("log", home / "cliqq.log")).expanduser()
-
-        self._env_path = Path(config.get("env", home / ".env")).expanduser()
+        self._debug_path = config.get("debug", home / "debug.log").expanduser()
+        self._log_path = config.get("log", home / "cliqq.log").expanduser()
+        self._env_path = config.get("env", home / ".env").expanduser()
 
     # func marked @property is the getter
     @property
@@ -171,3 +177,12 @@ class PathManager:
             pass
 
         # .env not created unless user gives permission
+
+
+# an extremely hacky solution to get argparse to do what I want
+class QuietArgParser(argparse.ArgumentParser):
+    """ArgumentParser subclass that raises ValueError instead of exiting."""
+
+    def error(self, message):
+        # instead of printing + sys.exit, just raise an exception
+        raise ValueError(message)

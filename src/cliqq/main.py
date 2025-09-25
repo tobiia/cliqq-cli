@@ -27,6 +27,12 @@ from cliqq.action import run
 
 
 def main() -> None:
+    """Main entry point for the Cliqq application.
+
+    Initializes configuration, loads templates, sets up session state,
+    and enters the interactive REPL loop. Dispatches commands or forwards
+    user prompts to the AI for responses.
+    """
 
     intro = r""" 
 
@@ -192,10 +198,18 @@ def main() -> None:
 
 
 def safe_main():
+    """Wrapper for main() with error handling.
+
+    Ensures uncaught exceptions are logged and displays a user-friendly
+    error message before exiting the program.
+    """
+
     try:
         main()
     except Exception as e:
-        logger.exception("Fatal error in Cliqq startup or main loop: %s", e)
+        logger.critical(
+            "UNCAUGHT EXCEPTION: Fatal error in Cliqq startup or main loop: %s", e
+        )
         program_output(
             "Cliqq encountered a fatal error and needs to exit.\nPlease check the logs for details.",
             style_name="error",
@@ -205,14 +219,6 @@ def safe_main():
 
 if __name__ == "__main__":
     safe_main()
-
-"""
-# Make CLI runnable from source tree with
-if not __package__:
-    # OYTHONPATH = "src/package"
-    package_source_path = os.path.dirname(os.path.dirname(__file__))
-    sys.path.insert(0, package_source_path)
-"""
 
 # NOTE further ideas:
 # implement file uploads

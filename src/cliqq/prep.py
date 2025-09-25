@@ -8,20 +8,28 @@ from cliqq.log import logger
 from cliqq.models import CommandRegistry, QuietArgParser
 
 
-# usage
-# args = parser.parse_args([list of each argument given]) = obj with properties that correspond to args given
-# note: this is written where you always have .prompt and .command, args iff needed
 def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
+    """Build the argument parser with available subcommands.
+    Usage: parser.parse_args([list of each argument given]) = obj with properties that correspond to args given
+
+    ex. cliqq q "how to make pasta", q = subcommand, "how to make pasta" = arg for sub
+    ex. cliqq how to make pasta
+
+    args = parser.parse_args(["cliqq", "how to make pasta"])
+    args.prompt = "how to make pasta"
+
+    Args:
+        registry (CommandRegistry): Registry containing command definitions.
+
+    Returns:
+        argparse.ArgumentParser: Configured parser instance.
+    """
+
     parser = QuietArgParser(
         prog="cliqq", description="A simple, lightweight command line chat assistant"
     )
 
-    """ ex. cliqq q "how to make pasta", q = subcommand, "how to make pasta" = arg for sub
-    commands are considered args, so below line adds an attr same as the one above
-    so can access command via args.command, which is an obj that can have its own args (add_argument) and such 
-    """
     subparsers = parser.add_subparsers(dest="command")
-    # dest means .command always exists
 
     for command_name, command in registry.commands.items():
         subparser = subparsers.add_parser(command_name, help=command.description)
@@ -29,10 +37,6 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
         if command.args:
             subparser.add_argument("args", nargs="+", help=command.args)
 
-    # ex. cliqq how to make pasta
-    # args = parser.parse_args(["cliqq", "how to make pasta"])
-    # args.prompt = "how to make pasta"
-    # order when adding subcommands and args matters a lot hence above
     parser.add_argument(
         "prompt",
         nargs=argparse.REMAINDER,
@@ -42,11 +46,23 @@ def parse_commands(registry: CommandRegistry) -> argparse.ArgumentParser:
     return parser
 
 
-# namespace returned ALWAYS has .command, .prompt. and .args
 def parse_input(
     tokens: list[str], parser: argparse.ArgumentParser
 ) -> argparse.Namespace:
+    """Normalize raw input tokens into an argparse.Namespace.
 
+    Handles filtering of program invocation tokens, error recovery,
+    and ensures `.command`, `.args`, and `.prompt` attributes always exist.
+
+    Args:
+        tokens (list[str]): Raw input tokens.
+        parser (argparse.ArgumentParser): Parser for known commands.
+
+    Returns:
+        argparse.Namespace: Parsed and normalized namespace.
+    """
+
+    # FIXME remove when package
     cleaned = []
     for t in tokens:
         if not t:  # skip empty
@@ -62,8 +78,10 @@ def parse_input(
     # removing "cliqq" b/c argparse will interpret it as a command (prog)
     if len(tokens) > 0 and tokens[0] == "cliqq":
         tokens = tokens[1:]
+
     try:
         ns = parser.parse_args(tokens)
+
     except (SystemExit, ValueError):
         # occurs if argsv only has 1 word non-prompt or if user starts prompt with "cliqq"
         # or if user enters a command with no args with an argument
@@ -85,6 +103,8 @@ def parse_input(
 
 
 def prep_prompt(prompt: str, template: str) -> str:
+    """Insert system context and user question into a template."""
+
     op_sys = sys.platform
     shell = psutil.Process(os.getppid()).name()
     cwd = os.getcwd()
@@ -99,20 +119,28 @@ def prep_prompt(prompt: str, template: str) -> str:
 
 
 def parse_action(action_str: str) -> dict[str, str] | None:
+    """Attempt to parse a JSON-encoded action string."""
+
     try:
         return json.loads(action_str)
     except json.JSONDecodeError as e:
-        logger.exception("Unable to parse actionable: %s", e)
+        logger.exception("JSONDecodeError: Unable to parse action: %s", e)
         return None
 
 
 # NOTE: for while i'm testing
 def load_template(file_path: Path) -> str:
+    """Load a text template from disk.
+
+    Returns:
+        str: Template contents, or a fallback default if file not found.
+    """
+
     try:
         with open(file_path, encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError as e:
-        logger.exception("FileNotFoundError: %s", e)
+        logger.exception("FileNotFoundError: Error while loading template\n%s", e)
         return "You are a command line assistant running in a {OS} {SHELL} in {CWD}. {QUESTION}"
 
 
