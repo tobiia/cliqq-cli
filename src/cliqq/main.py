@@ -1,5 +1,6 @@
 # pip install -e . --> from project root
 
+from pathlib import Path
 import shlex
 import sys
 
@@ -121,7 +122,7 @@ def main() -> None:
 
         if input:
             user_prompt = prep_prompt(input, template)
-
+            
             action_str, response = ai_response(
                 user_prompt, paths.env_path, api_config, history
             )
@@ -139,11 +140,11 @@ def main() -> None:
 
                         if action_type == "command":
                             cmd = action.get("command")
-                            program_output(cmd, style_name="action")
+                            program_output(f"Command: {cmd}", style_name="action")
                         elif action_type == "file":
                             file_path = action.get("path")
                             program_output(
-                                f"Saved file: {file_path}", style_name="action"
+                                f"File: {Path(file_path).name}", style_name="action"
                             )
                         else:
                             # rejection handled by action module
@@ -172,7 +173,7 @@ def main() -> None:
                         )
                     else:
                         program_output(
-                            "Sorry I couldn't complete your request. Do you have another one for me?"
+                            "Got it. Do you have another request for me?"
                         )
                 else:
                     # maybe have a bank of different wording for this?

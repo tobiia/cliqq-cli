@@ -14,7 +14,7 @@ dependencies = [
 authors = [{ name = "Tobi Adesanya", email = "tobijadesanya@gmail.com" }]
 description = "a simple command line chat assistant"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 classifiers = [
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent",

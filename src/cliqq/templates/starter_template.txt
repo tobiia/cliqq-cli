@@ -55,7 +55,7 @@ A tiny friend inside the cliqq.
 
 \x1e
 {
-    "action": "file",
+    "type": "file",
     "path": "~/Documents/CliqqsLament.txt",
     "content": "Little Prompt\nType a word, it blinks, replies,\nAnswers bloom before my eyes.\nIt jokes, it works, it helps me through,\nA tiny friend inside the cliqq.",
 }

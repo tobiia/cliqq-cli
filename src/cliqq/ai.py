@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from dotenv import dotenv_values
 from typing import Iterable
+import httpx
 import openai
 
 from cliqq.log import logger
@@ -50,25 +51,19 @@ def ai_response(
         )
 
         raw_accum = []
-        output = True
+        action_started = False
 
         # also generator
         for delta in buffer_output(deltas):
             # delimiter = flush immediately and stop
             raw_accum.append(delta)
 
-            if "\x1e" in delta or "\\x1e" in delta:
-                output = False
-
-            if output:
-                clean_delta = (
-                    delta.replace("\x1e", "")
-                    .replace("\x1f", "")
-                    .replace("\\x1e", "")
-                    .replace("\\x1f", "")
-                )
+            if not action_started and ("\x1e" in delta or "\\x1e" in delta):
+                action_started = True
+                
+            if not action_started:
                 program_output(
-                    clean_delta, end="", style_name="info", continuous=True, log=False
+                    delta, end="", style_name="info", continuous=True, log=False
                 )
 
         raw_full_text = "".join(raw_accum)
@@ -120,7 +115,12 @@ def stream_chunks(
         client = None
 
     if client is None:
-        client = openai.OpenAI(api_key=api_config.api_key, base_url=api_config.base_url)
+        http_client = httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0))
+        client = openai.OpenAI(
+            api_key=api_config.api_key, 
+            base_url=api_config.base_url,
+            http_client=http_client
+        )
         api_config.client = client
 
     with client.chat.completions.create(
@@ -134,7 +134,7 @@ def stream_chunks(
                 # accumulate the content, print until end of content or recieve actionable
                 delta = str(chunk.choices[0].delta.content)
                 yield delta
-            if chunk.choices[0].finish_reason == "stop" == "stop":
+            if chunk.choices[0].finish_reason == "stop":
                 break
 
 

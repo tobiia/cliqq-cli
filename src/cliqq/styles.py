@@ -12,7 +12,7 @@ DEFAULT_STYLE = Style.from_dict(
         "user": "#8be9fd bold",
         "name": "#bd93f9 bold",
         "program": "#f8f8f2",
-        "info": "#50fa7b",
+        "info": "#bd93f9",
         "action": "#ff79c6",
         "error": "#ff5555 bold",
         "input-selection": "#ffb86c",

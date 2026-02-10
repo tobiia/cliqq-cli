@@ -1,8 +1,8 @@
-a simple, lightweight command line chat assistant to answer questions and carry out tasks on your computer
-
 # Cliqq - Command Line AI Assistant
 
 Cliqq is a simple, lightweight command-line interface tool that integrates AI capabilities to assist with various tasks, including command execution, file creation, and code generation. It runs seamlessly on Windows, Linux, and macOS.
+
+![](src\cliqq\public\cliqq.gif)
 
 ## Installation
 
@@ -10,7 +10,7 @@ Windows (Powershell):
 ```powershell
 # Clone the repository
 git clone https://github.com/tobiia/cliqq-cli.git
-cd cliqq
+cd cliqq-cli
 
 # Create and activate a virtual environment
 python -m venv .venv
@@ -26,7 +26,7 @@ Linux/macOS:
 ```
 # Clone the repository
 git clone https://github.com/tobiia/cliqq-cli.git
-cd cliqq
+cd cliqq-cli
 
 # Install in editable (development) mode
 python3 -m venv .venv
