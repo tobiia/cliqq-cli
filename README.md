@@ -2,7 +2,7 @@
 
 Cliqq is a simple, lightweight command-line interface tool that integrates AI capabilities to assist with various tasks, including command execution, file creation, and code generation. It runs seamlessly on Windows, Linux, and macOS.
 
-![](src\cliqq\public\cliqq.gif)
+![](src/cliqq/public/cliqq.gif)
 
 ## Installation
 
